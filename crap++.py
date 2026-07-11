@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2024, alittleshark-dev
+# Copyright (c) 2026, alittleshark-dev
 class ASTNode:
     def __init__(self, data, left=None, right=None):
         self.data = data

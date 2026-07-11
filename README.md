@@ -24,6 +24,9 @@
 | `()` | 括号/表达式分组 | `(1 + 2) * 3` |
 | `;` | 语句结束符 (End) | `> "End";` |
 
+## 🤔 怎么用?
+`bash python crap++.py`
+
 ## 进度
 
 - [<span style="color:#28A745">+</span>] 词法分析器 (Lexer)

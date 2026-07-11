@@ -24,8 +24,7 @@
 | `()` | 括号/表达式分组 | `(1 + 2) * 3` |
 | `;` | 语句结束符 (End) | `> "End";` |
 
-## 🤔 怎么用?
-`bash python crap++.py`
+
 
 ## 进度
 
@@ -33,5 +32,9 @@
 - [<span style="color:#E36209">-</span>] 语法分析器 (Parser)
 - [<span style="color:#999999"> </span>] 代码生成器 (Code Generator)
 
+## 🤔 怎么用?
+`bash python crap++.py`
+
 ---
+
 *Copyright (c) 2024, alittleshark-dev*

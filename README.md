@@ -25,7 +25,7 @@
 | `;` | 语句结束符 (End) | `> "End";` |
 
 ## 🤔 怎么用?
-`bash python crap++.py`
+`$ python crap++.py`
 
 ## 进度
 

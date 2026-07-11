@@ -5,23 +5,12 @@ class ASTNode:
         self.data = data
         self.left:ASTNode = left
         self.right:ASTNode = right
-        
+
     def __repr__(self):
-        if self.left is None and self.right is None:
+        if self.left is None or self.right is None:
             return f"Leaf({self.data!r})"
         else:
-            return f"BinOp({self.data!r})"
-
-    def display(self, prefix="", is_left=True):
-        connector = "├── " if is_left and prefix else "└── " if prefix else ""
-        print(f"{prefix}{connector}{self}")
-        
-        if self.left:
-            new_prefix = prefix + ("│   " if is_left and prefix else "    ")
-            self.left.display(new_prefix, is_left=True)
-        if self.right:
-            new_prefix = prefix + ("│   " if is_left and prefix else "    ")
-            self.right.display(new_prefix, is_left=False)
+            return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 
 class Compiler:
     def __init__(self, code):
@@ -114,7 +103,7 @@ class Compiler:
 if __name__ == "__main__":
     code = '''
     > "Hello World!";
-    1+2+3
+    1+2+3;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

@@ -37,4 +37,4 @@
 
 ---
 
-*Copyright (c) 2024, alittleshark-dev*
+*Copyright (c) 2026 alittleshark-dev*

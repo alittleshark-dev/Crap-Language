@@ -1,15 +1,27 @@
 # -*- coding: utf-8 -*-
+# Copyright (c) 2024, alittleshark-dev
 class ASTNode:
     def __init__(self, data, left=None, right=None):
         self.data = data
         self.left:ASTNode = left
         self.right:ASTNode = right
-
+        
     def __repr__(self):
-        if self.left is None or self.right is None:
+        if self.left is None and self.right is None:
             return f"Leaf({self.data!r})"
         else:
-            return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
+            return f"BinOp({self.data!r})"
+
+    def display(self, prefix="", is_left=True):
+        connector = "├── " if is_left and prefix else "└── " if prefix else ""
+        print(f"{prefix}{connector}{self}")
+        
+        if self.left:
+            new_prefix = prefix + ("│   " if is_left and prefix else "    ")
+            self.left.display(new_prefix, is_left=True)
+        if self.right:
+            new_prefix = prefix + ("│   " if is_left and prefix else "    ")
+            self.right.display(new_prefix, is_left=False)
 
 class Compiler:
     def __init__(self, code):
@@ -115,4 +127,3 @@ if __name__ == "__main__":
     print()
     print("AST: ")
     print(ast)
-

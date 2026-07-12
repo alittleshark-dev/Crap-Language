@@ -106,7 +106,7 @@ class Compiler:
 
 if __name__ == "__main__":
     code = '''
-    -3 + 4 + 5;
+    -3
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

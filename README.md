@@ -1,4 +1,4 @@
-<h1 align="center">Carp++</h1>
+<h1 align="center">Crap++</h1>
 
 > 欢迎来到面向屎山编程!
 > 我不推荐你把他写到简历里面，因为这显得不太专业

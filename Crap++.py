@@ -89,11 +89,15 @@ class Compiler:
                         stack[0].right = stack.pop()
             if token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_DIV", "TOKEN_MUL"]:
                 mask = ASTNode(data, left=number)
-                if len(stack) != 0 and token_type in ["TOKEN_PLUS", "TOKEN_MINUS"]:
-                    mask.left = stack.pop()
-                    mask.right = number
-                if len(stack) != 0 and token_type in ["TOKEN_DIV", "TOKEN_MUL"]:
-                    mask.left = stack[0].right
+                if len(stack) != 0:
+                    if token_type in ["TOKEN_PLUS", "TOKEN_MINUS"]:
+                        mask.right = number
+                    if token_type in ["TOKEN_DIV", "TOKEN_MUL"] and stack[0].data in ["+", "-"]:
+                        mask.left = stack[0].right
+                    else:
+                        mask.left = stack.pop()
+                elif mask == "TOKEN_MINUS":
+                    
                     pass
                 
                 stack.append(mask)
@@ -102,8 +106,7 @@ class Compiler:
 
 if __name__ == "__main__":
     code = '''
-    > "Hello World!";
-    1+2+3;
+    -3 + 4 + 5;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

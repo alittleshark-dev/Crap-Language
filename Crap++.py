@@ -73,40 +73,55 @@ class Compiler:
                 self.token_code.append(("TOKEN_NUMBER", temp))
             else:
                 self.token_code.append(("TOKEN_IDENTIFIER", temp))
-        
         return self.token_code
-    
+
+    def get_priority(self, token_type):
+        """
+            判断运算符的优先级
+        """
+        if token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "+", "-"]: return 1
+        elif token_type in ["TOKEN_MUL", "TOKEN_DIV", "*", "/"]: return 2
+        else: return 0
+
     def parser(self):
         stack = []
+        temp_numbers = []
+        temp_masks = []
+
         for token in self.token_code:
-            # print(stack)
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
-                number = ASTNode(data)
-                if len(stack) != 0:
-                    stack[-1].right = number
-                    if len(stack) == 2:
-                        stack[0].right = stack.pop()
-            if token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_DIV", "TOKEN_MUL"]:
-                mask = ASTNode(data, left=number)
-                if len(stack) != 0:
-                    if token_type in ["TOKEN_PLUS", "TOKEN_MINUS"]:
-                        mask.right = number
-                    if token_type in ["TOKEN_DIV", "TOKEN_MUL"] and stack[0].data in ["+", "-"]:
-                        mask.left = stack[0].right
-                    else:
-                        mask.left = stack.pop()
-                elif mask == "TOKEN_MINUS":
-                    
-                    pass
-                
-                stack.append(mask)
-        self.aststack.append(stack.pop())
-        return f"code ast stack: {self.aststack}\n temp_stack: {stack}\n stack.lenght: {len(stack)}"
+                temp_numbers.append(ASTNode(data))
+
+            elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:                    
+                while len(temp_masks) != 0 and\
+                        self.get_priority(temp_masks[-1].data) >= self.get_priority(token_type):
+
+                    op_node = temp_masks.pop()
+
+                    right = temp_numbers.pop()
+                    left = temp_numbers.pop()
+
+                    op_node.left = left
+                    op_node.right = right
+                    temp_numbers.append(op_node)
+
+                temp_masks.append(ASTNode(data))
+            elif token_type == "TOKEN_END":
+                # 处理表达式
+                if len(temp_masks) != 0:
+                   while len(temp_masks) != 0:
+                       num = temp_numbers.pop()
+                       op_node = temp_masks.pop()
+                       op_node.left = temp_numbers.pop()
+                       op_node.right = num
+                       temp_numbers.append(op_node)
+
+        return f"Debug: \n numbers: {temp_numbers}\n temp_masks: {temp_masks} \n stack: {stack}"
 
 if __name__ == "__main__":
     code = '''
-    -3
+    1 + 2 + 3;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

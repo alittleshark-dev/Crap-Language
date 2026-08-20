@@ -7,7 +7,7 @@ class ASTNode:
         self.right:ASTNode = right
 
     def __repr__(self):
-        if self.left is None or self.right is None:
+        if self.left is None and self.right is None:
             return f"Leaf({self.data!r})"
         else:
             return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
@@ -30,6 +30,7 @@ class Compiler:
                        "(": "TOKEN_L_BRACKETS",
                        ")": "TOKEN_R_BRACKETS"}
         self.aststack = []
+        self.line = 0
 
     def lexer(self):
         in_string = False
@@ -84,7 +85,6 @@ class Compiler:
         else: return 0
 
     def parser(self):
-        stack = []
         temp_numbers = []
         temp_masks = []
 
@@ -93,7 +93,8 @@ class Compiler:
             if token_type == "TOKEN_NUMBER":
                 temp_numbers.append(ASTNode(data))
 
-            elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:                    
+            elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
+                # 优先级
                 while len(temp_masks) != 0 and\
                         self.get_priority(temp_masks[-1].data) >= self.get_priority(token_type):
 
@@ -107,21 +108,58 @@ class Compiler:
                     temp_numbers.append(op_node)
 
                 temp_masks.append(ASTNode(data))
+            
+            elif token_type == "TOKEN_OUTPUT":
+                self.aststack.append(ASTNode(data))
+
+            elif token_type == "TOKEN_INPUT":
+                self.aststack.append(ASTNode(data))
+
+            elif token_type == "TOKEN_STRING":
+                if self.aststack[-1].data == ">":
+                    self.aststack[-1].left = ASTNode(data)
+                if self.aststack[-1].data == "<":
+                    self.aststack[-1].left = ASTNode(data)
+
             elif token_type == "TOKEN_END":
-                # 处理表达式
+                self.line += 1
+
                 if len(temp_masks) != 0:
                    while len(temp_masks) != 0:
-                       num = temp_numbers.pop()
-                       op_node = temp_masks.pop()
-                       op_node.left = temp_numbers.pop()
-                       op_node.right = num
-                       temp_numbers.append(op_node)
+                        # print(len(temp_masks), len(temp_numbers), "\n", temp_masks, temp_numbers, self.aststack)
+                        if len(temp_numbers) == 1 and len(temp_masks) != 0:
+                            missing_op = temp_masks[-1].data
+                            print(f"Syntax error [{self.line} line]: Missing right operand for '{missing_op}'")
+                            temp_masks.clear()
+                            temp_numbers.clear()
+                            continue
+                        
+                        num = temp_numbers.pop()
+                        op_node = temp_masks.pop()
+                        op_node.left = temp_numbers.pop()
+                        op_node.right = num
+                        temp_numbers.append(op_node)
 
-        return f"Debug: \n numbers: {temp_numbers}\n temp_masks: {temp_masks} \n stack: {stack}"
+                if len(self.aststack) != 0 and self.aststack[-1].data == ">":
+                    self.aststack[-1].left = temp_numbers.pop()
+
+                if len(self.aststack) != 0 and self.aststack[-1].data == "<":
+                    self.aststack[-1].left = temp_numbers.pop()
+
+                if len(temp_numbers) == 1:
+                    self.aststack.append(temp_numbers.pop())
+
+                if len(temp_numbers) > 1:
+                    print(f"Syntax error [{self.line} line]: Missing operator between numbers")
+                    temp_numbers.clear()
+                    temp_masks.clear()
+
+        temp_numbers = []
+        return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"
 
 if __name__ == "__main__":
     code = '''
-    1 + 2 + 3;
+    < 1 + 2 * 3;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

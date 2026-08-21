@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2026, alittleshark-dev
 class ASTNode:
-    def __init__(self, data, left=None, right=None):
+    def __init__(self, data, left=None, right=None, condition=None):
         self.data = data
         self.left:ASTNode = left
         self.right:ASTNode = right
+        self.condition:ASTNode = condition
 
     def __repr__(self):
+        if self.condition is not None:
+            return f"Condition({self.data!r} condition={self.condition!r} left={self.left!r} right={self.right!r})"
+
         if self.left is None and self.right is None:
             return f"Leaf({self.data!r})"
         else:
@@ -80,11 +84,13 @@ class Compiler:
         """
             判断运算符的优先级
         """
+        if token_type == "(": return -1
         if token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "+", "-"]: return 1
-        elif token_type in ["TOKEN_MUL", "TOKEN_DIV", "*", "/"]: return 2
-        else: return 0
+        if token_type in ["TOKEN_MUL", "TOKEN_DIV", "*", "/"]: return 2
+        return 0
 
     def parser(self):
+        bracket_stack = []
         temp_numbers = []
         temp_masks = []
 
@@ -108,6 +114,25 @@ class Compiler:
                     temp_numbers.append(op_node)
 
                 temp_masks.append(ASTNode(data))
+
+            elif token_type == "TOKEN_L_BRACKETS":
+                bracket_stack.append(len(temp_masks))
+
+            elif token_type == "TOKEN_R_BRACKETS":
+
+                start_masks = bracket_stack.pop()
+
+                while len(temp_masks) > start_masks:
+
+                    op_node = temp_masks.pop()
+
+                    right = temp_numbers.pop()
+                    left = temp_numbers.pop()
+
+                    op_node.left = left
+                    op_node.right = right
+
+                    temp_numbers.append(op_node)
             
             elif token_type == "TOKEN_OUTPUT":
                 self.aststack.append(ASTNode(data))
@@ -140,10 +165,10 @@ class Compiler:
                         op_node.right = num
                         temp_numbers.append(op_node)
 
-                if len(self.aststack) != 0 and self.aststack[-1].data == ">":
+                if len(self.aststack) != 0 and self.aststack[-1].data == ">" and len(temp_numbers) != 0:
                     self.aststack[-1].left = temp_numbers.pop()
 
-                if len(self.aststack) != 0 and self.aststack[-1].data == "<":
+                if len(self.aststack) != 0 and self.aststack[-1].data == "<" and len(temp_numbers) != 0:
                     self.aststack[-1].left = temp_numbers.pop()
 
                 if len(temp_numbers) == 1:
@@ -159,7 +184,9 @@ class Compiler:
 
 if __name__ == "__main__":
     code = '''
-    < 1 + 2 * 3;
+    > "Hello World!";
+    < "Enter a number:";
+    > 1 + 2 - 3 - (2 + 4 * 4);
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")
@@ -171,4 +198,7 @@ if __name__ == "__main__":
     ast = my_compiler.parser()
     print()
     print("AST: ")
-    print(ast)
+    line = 0
+    for node in my_compiler.aststack:
+        line += 1
+        print(f"\t[ln {line}]: {node}")

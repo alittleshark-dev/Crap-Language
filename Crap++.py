@@ -10,12 +10,11 @@ class ASTNode:
     def __repr__(self):
         if self.condition is not None:
             return f"Condition({self.data!r} condition={self.condition!r} left={self.left!r} right={self.right!r})"
-
         if self.left is None and self.right is None:
             return f"Leaf({self.data!r})"
-        else:
-            return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
-
+        if self.data in (">", "<"):
+            return f"UnaryOp({self.data!r} arg={self.left!r})"
+        return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 class Compiler:
     def __init__(self, code):
         self.code = code
@@ -157,7 +156,7 @@ class Compiler:
                             print(f"Syntax error [{self.line} line]: Missing right operand for '{missing_op}'")
                             temp_masks.clear()
                             temp_numbers.clear()
-                            continue
+                            break
                         
                         num = temp_numbers.pop()
                         op_node = temp_masks.pop()
@@ -165,10 +164,7 @@ class Compiler:
                         op_node.right = num
                         temp_numbers.append(op_node)
 
-                if len(self.aststack) != 0 and self.aststack[-1].data == ">" and len(temp_numbers) != 0:
-                    self.aststack[-1].left = temp_numbers.pop()
-
-                if len(self.aststack) != 0 and self.aststack[-1].data == "<" and len(temp_numbers) != 0:
+                if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<") and len(temp_numbers) != 0:
                     self.aststack[-1].left = temp_numbers.pop()
 
                 if len(temp_numbers) == 1:
@@ -179,7 +175,6 @@ class Compiler:
                     temp_numbers.clear()
                     temp_masks.clear()
 
-        temp_numbers = []
         return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"
 
 if __name__ == "__main__":

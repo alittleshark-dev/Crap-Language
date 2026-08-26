@@ -15,6 +15,7 @@ class ASTNode:
         if self.data in (">", "<"):
             return f"UnaryOp({self.data!r} arg={self.left!r})"
         return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
+
 class Compiler:
     def __init__(self, code):
         self.code = code
@@ -97,7 +98,7 @@ class Compiler:
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
                 temp_numbers.append(ASTNode(data))
-
+                
             elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
                 # 优先级
                 while len(temp_masks) != 0 and\
@@ -149,7 +150,7 @@ class Compiler:
                 self.line += 1
 
                 if len(temp_masks) != 0:
-                   while len(temp_masks) != 0:
+                    while len(temp_masks) != 0:
                         # print(len(temp_masks), len(temp_numbers), "\n", temp_masks, temp_numbers, self.aststack)
                         if len(temp_numbers) == 1 and len(temp_masks) != 0:
                             missing_op = temp_masks[-1].data
@@ -163,9 +164,11 @@ class Compiler:
                         op_node.left = temp_numbers.pop()
                         op_node.right = num
                         temp_numbers.append(op_node)
-
-                if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<") and len(temp_numbers) != 0:
-                    self.aststack[-1].left = temp_numbers.pop()
+                    
+                    if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<"):
+                        self.aststack[-1].left = temp_numbers.pop()
+                    else:
+                        self.aststack.append(temp_numbers.pop())
 
                 if len(temp_numbers) == 1:
                     self.aststack.append(temp_numbers.pop())
@@ -179,9 +182,8 @@ class Compiler:
 
 if __name__ == "__main__":
     code = '''
-    > "Hello World!";
-    < "Enter a number:";
     > 1 + 2 - 3 - (2 + 4 * 4);
+    1;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")
@@ -193,6 +195,11 @@ if __name__ == "__main__":
     ast = my_compiler.parser()
     print()
     print("AST: ")
+    # line = 0
+    # for node in my_compiler.aststack:
+    #     line += 1
+    #     print(f"\t[ln {line}]: {node}")
+    print(ast)
     line = 0
     for node in my_compiler.aststack:
         line += 1

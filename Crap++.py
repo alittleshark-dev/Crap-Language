@@ -103,12 +103,13 @@ class Compiler:
         bracket_stack = []
         temp_numbers = []
         temp_masks = []
+        list_number = []
 
         for token in self.token_code:
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
                 if type(self.aststack[-1]) is Identifier:
-                    self.aststack[-1].left = ASTNode(data)
+                    list_number.append(ASTNode(data))
 
                 else:
                     temp_numbers.append(ASTNode(data))
@@ -193,6 +194,9 @@ class Compiler:
                         self.aststack[-1].left = temp_numbers.pop()
                     else:
                         self.aststack.append(temp_numbers.pop())
+                
+                if len(list_number) != 0 and type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
+                    self.aststack[-1].left = list_number
 
                 if len(temp_numbers) == 1:
                     self.aststack.append(temp_numbers.pop())
@@ -202,6 +206,8 @@ class Compiler:
                     temp_numbers.clear()
                     temp_masks.clear()
 
+                list_number = []
+
         return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"
 
 if __name__ == "__main__":
@@ -209,6 +215,7 @@ if __name__ == "__main__":
     > 1 + 2 * 3;
     > (1 + 2) * 3;
     a 24;
+    b 2 4 3;
     str "hello";
     > a;
     '''

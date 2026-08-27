@@ -16,6 +16,11 @@ class ASTNode:
             return f"UnaryOp({self.data!r} arg={self.left!r})"
         return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 
+class Identifier(ASTNode):
+    def __init__(self, name):
+        super().__init__(data=name)
+        self.name = name
+
 class Compiler:
     def __init__(self, code):
         self.code = code
@@ -97,7 +102,11 @@ class Compiler:
         for token in self.token_code:
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
-                temp_numbers.append(ASTNode(data))
+                if type(self.aststack[-1]) is Identifier:
+                    self.aststack[-1].left = ASTNode(data)
+
+                else:
+                    temp_numbers.append(ASTNode(data))
                 
             elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
                 # 优先级
@@ -145,6 +154,8 @@ class Compiler:
                     self.aststack[-1].left = ASTNode(data)
                 if self.aststack[-1].data == "<":
                     self.aststack[-1].left = ASTNode(data)
+            elif token_type == "TOKEN_IDENTIFIER":
+                self.aststack.append(Identifier(data))
 
             elif token_type == "TOKEN_END":
                 self.line += 1
@@ -183,7 +194,7 @@ class Compiler:
 if __name__ == "__main__":
     code = '''
     > 1 + 2 - 3 - (2 + 4 * 4);
-    1;
+    a 1;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")
@@ -195,11 +206,7 @@ if __name__ == "__main__":
     ast = my_compiler.parser()
     print()
     print("AST: ")
-    # line = 0
-    # for node in my_compiler.aststack:
-    #     line += 1
-    #     print(f"\t[ln {line}]: {node}")
-    print(ast)
+    # print(ast)
     line = 0
     for node in my_compiler.aststack:
         line += 1

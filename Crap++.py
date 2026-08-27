@@ -155,12 +155,20 @@ class Compiler:
                 self.aststack.append(ASTNode(data))
 
             elif token_type == "TOKEN_STRING":
+                if type(self.aststack[-1]) is Identifier:
+                    self.aststack[-1].left = ASTNode(data)
+
                 if self.aststack[-1].data == ">":
                     self.aststack[-1].left = ASTNode(data)
+
                 if self.aststack[-1].data == "<":
                     self.aststack[-1].left = ASTNode(data)
+
             elif token_type == "TOKEN_IDENTIFIER":
-                self.aststack.append(Identifier(data))
+                if (self.aststack[-1].data == ">" or self.aststack[-1].data == "<") and self.aststack[-1].left == None:
+                    self.aststack[-1].left = Identifier(data)
+                else:
+                    self.aststack.append(Identifier(data))
 
             elif token_type == "TOKEN_END":
                 self.line += 1
@@ -201,7 +209,8 @@ if __name__ == "__main__":
     > 1 + 2 * 3;
     > (1 + 2) * 3;
     a 24;
-    > "hello";
+    str "hello";
+    > a;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

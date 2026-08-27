@@ -10,10 +10,15 @@ class ASTNode:
     def __repr__(self):
         if self.condition is not None:
             return f"Condition({self.data!r} condition={self.condition!r} left={self.left!r} right={self.right!r})"
+        
         if self.left is None and self.right is None:
             return f"Leaf({self.data!r})"
-        if self.data in (">", "<"):
-            return f"UnaryOp({self.data!r} arg={self.left!r})"
+
+        if self.data == ">":
+            return f"OUTPUT({self.data!r} arg={self.left!r})"
+
+        if self.data == "<":
+            return f"INPUT({self.data!r} arg={self.left!r})"
         return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 
 class Identifier(ASTNode):
@@ -193,8 +198,10 @@ class Compiler:
 
 if __name__ == "__main__":
     code = '''
-    > 1 + 2 - 3 - (2 + 4 * 4);
-    a 1;
+    > 1 + 2 * 3;
+    > (1 + 2) * 3;
+    a 24;
+    > "hello";
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

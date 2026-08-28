@@ -8,6 +8,10 @@ class ASTNode:
         self.condition:ASTNode = condition
 
     def __repr__(self):
+        if self.right is None and self.left is not None and self.data in ("-",):
+            return f"UnaryOp({self.data!r} operand={self.left!r})"
+
+
         if self.condition is not None:
             return f"Condition({self.data!r} condition={self.condition!r} left={self.left!r} right={self.right!r})"
         
@@ -25,6 +29,11 @@ class Identifier(ASTNode):
     def __init__(self, name):
         super().__init__(data=name)
         self.name = name
+
+class UnaryOp(ASTNode):
+    def __init__(self, operator, operand=None):
+        super().__init__(data=operator, left=operand)
+        self.operator = operator
 
 class Compiler:
     def __init__(self, code):
@@ -104,13 +113,18 @@ class Compiler:
         temp_numbers = []
         temp_masks = []
         list_number = []
+        temp_minus = None
 
         for token in self.token_code:
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
                 if type(self.aststack[-1]) is Identifier:
                     list_number.append(ASTNode(data))
-
+                
+                elif temp_minus == "-":
+                    temp_numbers.append(UnaryOp("-", data))
+                    temp_minus = None
+                
                 else:
                     temp_numbers.append(ASTNode(data))
                 
@@ -127,8 +141,11 @@ class Compiler:
                     op_node.left = left
                     op_node.right = right
                     temp_numbers.append(op_node)
-
-                temp_masks.append(ASTNode(data))
+                if token_type == "TOKEN_MINUS" and len(temp_numbers) == 0:
+                    temp_minus = data
+                
+                else:
+                    temp_masks.append(ASTNode(data))
 
             elif token_type == "TOKEN_L_BRACKETS":
                 bracket_stack.append(len(temp_masks))
@@ -176,7 +193,7 @@ class Compiler:
 
                 if len(temp_masks) != 0:
                     while len(temp_masks) != 0:
-                        # print(len(temp_masks), len(temp_numbers), "\n", temp_masks, temp_numbers, self.aststack)
+                        print(len(temp_masks), len(temp_numbers), "\n", temp_masks, temp_numbers, self.aststack)
                         if len(temp_numbers) == 1 and len(temp_masks) != 0:
                             missing_op = temp_masks[-1].data
                             print(f"Syntax error [{self.line} line]: Missing right operand for '{missing_op}'")
@@ -190,7 +207,7 @@ class Compiler:
                         op_node.right = num
                         temp_numbers.append(op_node)
                     
-                    if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<"):
+                    if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<") and self.aststack[-1].left == None:
                         self.aststack[-1].left = temp_numbers.pop()
                     else:
                         self.aststack.append(temp_numbers.pop())
@@ -218,6 +235,7 @@ if __name__ == "__main__":
     b 2 4 3;
     str "hello";
     > a;
+    -1 * 2 + 3;
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

@@ -22,7 +22,7 @@ class ASTNode:
             return f"OUTPUT({self.data!r} arg={self.left!r})"
 
         if self.data == "<":
-            return f"INPUT({self.data!r} arg={self.left!r})"
+            return f"INPUT({self.data!r} arg={self.left!r}) var={self.right!r}"
         return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 
 class Identifier(ASTNode):
@@ -170,17 +170,21 @@ class Compiler:
                 self.aststack.append(ASTNode(data))
 
             elif token_type == "TOKEN_INPUT":
-                self.aststack.append(ASTNode(data))
+                if type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
+                    self.aststack.append(ASTNode(data, left=self.aststack.pop()))
+                else:
+                    self.aststack.append(ASTNode(data))
 
             elif token_type == "TOKEN_STRING":
                 if type(self.aststack[-1]) is Identifier:
                     self.aststack[-1].left = ASTNode(data)
-
-                if self.aststack[-1].data == ">":
+                elif self.aststack[-1].data == ">" and self.aststack[-1].left is None:
                     self.aststack[-1].left = ASTNode(data)
-
-                if self.aststack[-1].data == "<":
+                elif self.aststack[-1].data == "<" and self.aststack[-1].left is None:
                     self.aststack[-1].left = ASTNode(data)
+                else:
+                    self.aststack[-1].right = ASTNode(data)
+
 
             elif token_type == "TOKEN_IDENTIFIER":
                 if (self.aststack[-1].data == ">" or self.aststack[-1].data == "<") and self.aststack[-1].left == None:
@@ -236,6 +240,8 @@ if __name__ == "__main__":
     str "hello";
     > a;
     -1 * 2 + 3;
+    a 24;
+     < "Hello!";
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

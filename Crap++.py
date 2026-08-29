@@ -22,7 +22,7 @@ class ASTNode:
             return f"OUTPUT({self.data!r} arg={self.left!r})"
 
         if self.data == "<":
-            return f"INPUT({self.data!r} arg={self.left!r}) var={self.right!r}"
+            return f"INPUT({self.data!r} arg={self.right!r}) var={self.left!r}"
         return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 
 class Identifier(ASTNode):
@@ -178,10 +178,13 @@ class Compiler:
             elif token_type == "TOKEN_STRING":
                 if type(self.aststack[-1]) is Identifier:
                     self.aststack[-1].left = ASTNode(data)
-                elif self.aststack[-1].data == ">" and self.aststack[-1].left is None:
+
+                elif self.aststack[-1].data in (">", "<") and self.aststack[-1].right is None:
+                    self.aststack[-1].right = ASTNode(data)
+                
+                elif self.aststack[-1].data in (">", "<") and self.aststack[-1].left is None:
                     self.aststack[-1].left = ASTNode(data)
-                elif self.aststack[-1].data == "<" and self.aststack[-1].left is None:
-                    self.aststack[-1].left = ASTNode(data)
+
                 else:
                     self.aststack[-1].right = ASTNode(data)
 
@@ -241,7 +244,8 @@ if __name__ == "__main__":
     > a;
     -1 * 2 + 3;
     a 24;
-     < "Hello!";
+    < "Hello!";
+    a < "请输入";
     '''
     my_compiler = Compiler(code)
     print("INPUT_CODE: ")

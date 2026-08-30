@@ -48,6 +48,8 @@ class Identifier(ASTNode):
     def __init__(self, name):
         super().__init__(data=name)
         self.name = name
+        self.packaged = False
+
     def __repr__(self):
         return f"ValDecl({self.data!r} val={self.left!r})"
 
@@ -140,8 +142,9 @@ class Compiler:
         errorflag = True
 
         for token in self.token_code:
+            """
             logging.debug(
-                f"[Comilper] [sub] [Parser]\n"
+                f"[Comilper] [sub] [Parser] [ln {self.line}]\n"
                 f"now_token: {token}\n"
                 f"bracket_stack: {bracket_stack}\n"
                 f"temp_munber: {temp_numbers}\n"
@@ -149,8 +152,7 @@ class Compiler:
                 f"list_masks: {list_number}\n"
                 f"temp_minus: {temp_minus}\n"
                 f"gen_aststack: {self.aststack}\n"
-            )
-
+            )"""
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
                 if type(self.aststack[-1]) is Identifier:
@@ -205,28 +207,36 @@ class Compiler:
                 self.aststack.append(ASTNode(data))
 
             elif token_type == "TOKEN_INPUT":
-                if type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
+                if len(self.aststack) != 0 and type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
                     self.aststack.append(ASTNode(data, left=self.aststack.pop()))
                 else:
                     self.aststack.append(ASTNode(data))
 
+
             elif token_type == "TOKEN_STRING":
                 if type(self.aststack[-1]) is Identifier:
                     self.aststack[-1].left = ASTNode(data)
+                    self.aststack[-1].packaged = True
 
-                elif self.aststack[-1].data in (">", "<") and self.aststack[-1].right is None:
+                elif self.aststack[-1].data == "<" and self.aststack[-1].right == None:
                     self.aststack[-1].right = ASTNode(data)
-                
-                elif self.aststack[-1].data in (">", "<") and self.aststack[-1].left is None:
+
+                elif self.aststack[-1].data == ">" and self.aststack[-1].left == None:
                     self.aststack[-1].left = ASTNode(data)
-
                 else:
-                    self.aststack[-1].right = ASTNode(data)
+                    self.aststack[-1].right = ASTNode(data)     
 
 
             elif token_type == "TOKEN_IDENTIFIER":
-                if len(self.aststack) != 0 and (self.aststack[-1].data == ">" or self.aststack[-1].data == "<") and self.aststack[-1].left == None:
-                    self.aststack[-1].left = Identifier(data)
+                print(f"ln {self.line + 1}", data)
+                if len(self.aststack) != 0:
+                    if self.aststack[-1].data == "<" and self.aststack[-1].right == None:
+                        self.aststack[-1].right = Identifier(data)
+                    elif self.aststack[-1].data == ">" and self.aststack[-1].left == None:
+                        self.aststack[-1].left = Identifier(data)
+                    else:
+                        print(f"ln {self.line + 1}: add{token}")
+                        self.aststack.append(Identifier(data))
                 else:
                     self.aststack.append(Identifier(data))
 
@@ -266,7 +276,8 @@ class Compiler:
 
                 if len(temp_numbers) == 1:
                     self.aststack.append(temp_numbers.pop())
-
+                if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
+                    self.aststack[-1].packaged = True
                 list_number = []
 
         return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"
@@ -281,12 +292,14 @@ if __name__ == "__main__":
     > a;
     -1 * 2 + 3;
     a 24;
+    a < str;
     < "Hello!";
     a < "请输入";
-    a + 1;
+    a;
+    < "hello";
     '''
     error_code = """
-    > 1 * 2 * 4 *;
+    > 1 * 2 * 4*;
 """
     fib = """
     a 1 1;
@@ -296,7 +309,13 @@ if __name__ == "__main__":
     :;
     > a;
 """
-    text_code = fib
+    debug_code = """
+    < "Hello!";
+    a < "请输入";
+    a;
+    < "hello";
+    """
+    text_code = code
     my_compiler = Compiler(text_code)
     print("INPUT_CODE: ")
     print(text_code)

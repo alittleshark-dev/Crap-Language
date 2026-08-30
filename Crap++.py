@@ -1,5 +1,24 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2026, alittleshark-dev
+import logging
+import os
+from datetime import datetime
+
+os.makedirs("log", exist_ok=True)
+
+timestamp = datetime.now().strftime("%y-%m-%d %H-%M")
+log_file = f"log/{timestamp}_astdebug.log"
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s | %(levelname)-8s | | %(message)s",
+    force=True,
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+
 class ASTNode:
     def __init__(self, data, left=None, right=None, condition=None):
         self.data = data
@@ -29,6 +48,8 @@ class Identifier(ASTNode):
     def __init__(self, name):
         super().__init__(data=name)
         self.name = name
+    def __repr__(self):
+        return f"ValDecl({self.data!r} val={self.left!r})"
 
 class UnaryOp(ASTNode):
     def __init__(self, operator, operand=None):
@@ -51,7 +72,9 @@ class Compiler:
                        "/": "TOKEN_DIV",
                        "*": "TOKEN_MUL",
                        "(": "TOKEN_L_BRACKETS",
-                       ")": "TOKEN_R_BRACKETS"}
+                       ")": "TOKEN_R_BRACKETS",
+                       "[": "TOKEN_L_SQUARE",
+                       "]": "TOKEN_R_SQUARE"}
         self.aststack = []
         self.line = 0
 
@@ -114,8 +137,20 @@ class Compiler:
         temp_masks = []
         list_number = []
         temp_minus = None
+        errorflag = True
 
         for token in self.token_code:
+            logging.debug(
+                f"[Comilper] [sub] [Parser]\n"
+                f"now_token: {token}\n"
+                f"bracket_stack: {bracket_stack}\n"
+                f"temp_munber: {temp_numbers}\n"
+                f"temp_masks: {temp_masks}\n"
+                f"list_masks: {list_number}\n"
+                f"temp_minus: {temp_minus}\n"
+                f"gen_aststack: {self.aststack}\n"
+            )
+
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
                 if type(self.aststack[-1]) is Identifier:
@@ -190,7 +225,7 @@ class Compiler:
 
 
             elif token_type == "TOKEN_IDENTIFIER":
-                if (self.aststack[-1].data == ">" or self.aststack[-1].data == "<") and self.aststack[-1].left == None:
+                if len(self.aststack) != 0 and (self.aststack[-1].data == ">" or self.aststack[-1].data == "<") and self.aststack[-1].left == None:
                     self.aststack[-1].left = Identifier(data)
                 else:
                     self.aststack.append(Identifier(data))
@@ -200,35 +235,37 @@ class Compiler:
 
                 if len(temp_masks) != 0:
                     while len(temp_masks) != 0:
-                        print(len(temp_masks), len(temp_numbers), "\n", temp_masks, temp_numbers, self.aststack)
-                        if len(temp_numbers) == 1 and len(temp_masks) != 0:
-                            missing_op = temp_masks[-1].data
-                            print(f"Syntax error [{self.line} line]: Missing right operand for '{missing_op}'")
+                        if len(temp_numbers) > 2 and len(temp_masks) == 1:
+                            print(f"Syntax error [{self.line} line]: Missing operator between numbers")
+                            errorflag = False
                             temp_masks.clear()
                             temp_numbers.clear()
+                            self.aststack.clear()
                             break
-                        
+                        if len(temp_masks) == len(temp_numbers):
+                            missing_op = temp_masks[-1].data
+                            print(f"Syntax error [{self.line} line]: Missing right operand for '{missing_op}'")
+                            errorflag = False
+                            temp_masks.clear()
+                            temp_numbers.clear()
+                            self.aststack.clear()
+                            break
                         num = temp_numbers.pop()
                         op_node = temp_masks.pop()
                         op_node.left = temp_numbers.pop()
                         op_node.right = num
                         temp_numbers.append(op_node)
-                    
-                    if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<") and self.aststack[-1].left == None:
-                        self.aststack[-1].left = temp_numbers.pop()
-                    else:
-                        self.aststack.append(temp_numbers.pop())
+                    if errorflag:
+                        if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<") and self.aststack[-1].left == None:
+                            self.aststack[-1].left = temp_numbers.pop()
+                        else:
+                            self.aststack.append(temp_numbers.pop())
                 
                 if len(list_number) != 0 and type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
                     self.aststack[-1].left = list_number
 
                 if len(temp_numbers) == 1:
                     self.aststack.append(temp_numbers.pop())
-
-                if len(temp_numbers) > 1:
-                    print(f"Syntax error [{self.line} line]: Missing operator between numbers")
-                    temp_numbers.clear()
-                    temp_masks.clear()
 
                 list_number = []
 
@@ -246,10 +283,23 @@ if __name__ == "__main__":
     a 24;
     < "Hello!";
     a < "请输入";
+    a + 1;
     '''
-    my_compiler = Compiler(code)
+    error_code = """
+    > 1 * 2 * 4 *;
+"""
+    fib = """
+    a 1 1;
+    i 0; i ?> 10 !:;
+        b a[i+1];
+        a [i+2] [a[i] + b];
+    :;
+    > a;
+"""
+    text_code = fib
+    my_compiler = Compiler(text_code)
     print("INPUT_CODE: ")
-    print(code)
+    print(text_code)
     tokens = my_compiler.lexer()
     print("Tokens: \n")
     for token in tokens:

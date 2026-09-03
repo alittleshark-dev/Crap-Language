@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2026, alittleshark-dev
-import logging
-import os
 from datetime import datetime
+import logging
+import random
+import os
 
 os.makedirs("log", exist_ok=True)
+
+DEBUG = False
 
 timestamp = datetime.now().strftime("%y-%m-%d %H-%M")
 log_file = f"log/{timestamp}_astdebug.log"
@@ -143,7 +146,7 @@ class Compiler:
 
         for token in self.token_code:
             logging.debug(
-                f"[Comilper] [sub] [Parser] [ln {self.line}]\n"
+                f"[Compiler] [sub] [Parser] [ln {self.line}]\n"
                 f"now_token: {token}\n"
                 f"bracket_stack: {bracket_stack}\n"
                 f"temp_number: {temp_numbers}\n"
@@ -154,7 +157,7 @@ class Compiler:
             )
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
-                if type(self.aststack[-1]) is Identifier:
+                if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
                     list_number.append(ASTNode(data))
                 
                 elif temp_minus == "-":
@@ -206,49 +209,54 @@ class Compiler:
                 self.aststack.append(ASTNode(data))
 
             elif token_type == "TOKEN_INPUT":
-                if len(self.aststack) != 0 and type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
-                    self.aststack.append(ASTNode(data, left=self.aststack.pop()))
+                if len(self.aststack) != 0:
+                    if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
+                        self.aststack.append(ASTNode(data, left=self.aststack.pop()))
                 else:
                     self.aststack.append(ASTNode(data))
 
 
             elif token_type == "TOKEN_STRING":
-                if type(self.aststack[-1]) is Identifier:
+                if (type(self.aststack[-1]) is Identifier
+                    and not self.aststack[-1].packaged):
                     self.aststack[-1].left = ASTNode(data)
-                    self.aststack[-1].packaged = True
 
-                elif self.aststack[-1].data == "<" and self.aststack[-1].right == None:
+                elif (self.aststack[-1].data == "<"
+                      and self.aststack[-1].right == None
+                      and not self.aststack[-1].packaged):
                     self.aststack[-1].right = ASTNode(data)
 
-                elif self.aststack[-1].data == ">" and self.aststack[-1].left == None:
+                elif (self.aststack[-1].data == ">"
+                      and self.aststack[-1].left == None
+                      and not self.aststack[-1].packaged):
                     self.aststack[-1].left = ASTNode(data)
+
                 else:
-                    self.aststack[-1].right = ASTNode(data)     
+                    self.aststack[-1].right = ASTNode(data)
 
             elif token_type == "TOKEN_IDENTIFIER":
                 print(f"identifier! {data}")
             
-                # 1. 检查栈是否为空，避免越界
                 if len(self.aststack) == 0:
                     self.aststack.append(Identifier(data))
-                    continue # 栈为空，直接压栈并跳过后续逻辑
+                    continue
             
-                # 2. 检查是不是数字表达式的一部分
                 if len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0:
                     print("add to numbers")
                     temp_numbers.append(Identifier(data))
             
-                # 3. 检查是不是 input 的右边
-                elif self.aststack[-1].data == "<" and self.aststack[-1].right == None:
+                elif (self.aststack[-1].data == "<"
+                      and self.aststack[-1].right == None
+                      and not self.aststack[-1].packaged):
                     print("add to input!")
                     self.aststack[-1].right = Identifier(data)
                 
-                # 4. 检查是不是 output 的左边
-                elif self.aststack[-1].data == ">" and self.aststack[-1].left == None:
+                elif (self.aststack[-1].data == ">"
+                      and self.aststack[-1].left == None
+                      and not self.aststack[-1].packaged):
                     print("add to output")
                     self.aststack[-1].left = Identifier(data)
                 
-                # 5. 都不满足，默认压入栈
                 else:
                     print("add to aststack")
                     self.aststack.append(Identifier(data))
@@ -280,18 +288,43 @@ class Compiler:
                         op_node.right = num
                         temp_numbers.append(op_node)
                     if errorflag:
-                        if len(self.aststack) != 0 and self.aststack[-1].data in (">", "<") and self.aststack[-1].left == None:
+                        if (len(self.aststack) != 0
+                            # 是输入输出
+                            and self.aststack[-1].data in (">", "<")
+                            # 没有表达式
+                            and self.aststack[-1].left == None
+                            # 没被打包
+                            and not self.aststack[-1].packaged):
                             self.aststack[-1].left = temp_numbers.pop()
+                            self.aststack[-1].packaged = True
+
                         else:
                             self.aststack.append(temp_numbers.pop())
                 
-                if len(list_number) != 0 and type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
-                    self.aststack[-1].left = list_number
+                    if type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
+                        self.aststack[-1].left = list_number
+                        self.aststack[-1].packaged = True
 
-                if len(temp_numbers) == 1:
-                    self.aststack.append(temp_numbers.pop())
-                if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
-                    self.aststack[-1].packaged = True
+                    if len(temp_numbers) == 1:
+                        self.aststack.append(temp_numbers.pop())
+
+                    if type(self.aststack[-1]) is Identifier:
+                        self.aststack[-1].packaged = True
+
+                    if not self.aststack[-1].packaged:
+                        self.aststack[-1].packaged = True
+                
+                if DEBUG:
+                    print(f"Compiler [{self.line} line]: 空行，跳过")
+
+                else:
+                    info_list = ["编译了一个分号, 什么都没有发生",
+                                 "编译成功！输出了一个滚木！",
+                                 "滚木！",
+                                 "编译器什么都没有干, 并且很生气的说出了这句话",
+                                 "解锁成就： 一行空气"]
+                    print(f"Compiler [{self.line} line]: {random.choice(info_list)}")
+
                 list_number = []
 
         return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"
@@ -310,6 +343,7 @@ if __name__ == "__main__":
     < "Hello!";
     a < "请输入";
     a;
+    < "hello";
     1+2*i+1;
     '''
     error_code = """
@@ -329,6 +363,7 @@ if __name__ == "__main__":
     a;
     < "hello";
     """
+
     text_code = code
     my_compiler = Compiler(text_code)
     print("INPUT_CODE: ")

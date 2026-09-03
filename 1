@@ -25,7 +25,6 @@ class ASTNode:
         self.left:ASTNode = left
         self.right:ASTNode = right
         self.condition:ASTNode = condition
-        self.packaged = False
 
     def __repr__(self):
         if self.right is None and self.left is not None and self.data in ("-",):
@@ -49,6 +48,7 @@ class Identifier(ASTNode):
     def __init__(self, name):
         super().__init__(data=name)
         self.name = name
+        self.packaged = False
 
     def __repr__(self):
         return f"ValDecl({self.data!r} val={self.left!r})"
@@ -146,9 +146,9 @@ class Compiler:
                 f"[Comilper] [sub] [Parser] [ln {self.line}]\n"
                 f"now_token: {token}\n"
                 f"bracket_stack: {bracket_stack}\n"
-                f"temp_number: {temp_numbers}\n"
+                f"temp_munber: {temp_numbers}\n"
                 f"temp_masks: {temp_masks}\n"
-                f"list_number: {list_number}\n"
+                f"list_masks: {list_number}\n"
                 f"temp_minus: {temp_minus}\n"
                 f"gen_aststack: {self.aststack}\n"
             )
@@ -225,34 +225,22 @@ class Compiler:
                 else:
                     self.aststack[-1].right = ASTNode(data)     
 
-            elif token_type == "TOKEN_IDENTIFIER":
-                print(f"identifier! {data}")
-            
-                # 1. 检查栈是否为空，避免越界
-                if len(self.aststack) == 0:
-                    self.aststack.append(Identifier(data))
-                    continue # 栈为空，直接压栈并跳过后续逻辑
-            
-                # 2. 检查是不是数字表达式的一部分
-                if len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0:
-                    print("add to numbers")
-                    temp_numbers.append(Identifier(data))
-            
-                # 3. 检查是不是 input 的右边
-                elif self.aststack[-1].data == "<" and self.aststack[-1].right == None:
-                    print("add to input!")
-                    self.aststack[-1].right = Identifier(data)
-                
-                # 4. 检查是不是 output 的左边
-                elif self.aststack[-1].data == ">" and self.aststack[-1].left == None:
-                    print("add to output")
-                    self.aststack[-1].left = Identifier(data)
-                
-                # 5. 都不满足，默认压入栈
-                else:
-                    print("add to aststack")
-                    self.aststack.append(Identifier(data))
 
+            elif token_type == "TOKEN_IDENTIFIER":
+                if len(self.aststack) != 0:
+                    if self.aststack[-1].data == "<" and self.aststack[-1].right == None:
+                        self.aststack[-1].right = Identifier(data)
+
+                elif len(temp_masks) == len(temp_number):
+                    temp_numbers.append(self.aststack.pop())
+                elif self.aststack[-1].data == ">" and self.aststack[-1].left == None:
+                        self.aststack[-1].left = Identifier(data)
+
+
+                    else:
+                        self.aststack.append(Identifier(data))
+                else:
+                    self.aststack.append(Identifier(data))
 
             elif token_type == "TOKEN_END":
                 self.line += 1
@@ -310,7 +298,8 @@ if __name__ == "__main__":
     < "Hello!";
     a < "请输入";
     a;
-    1+2*i+1;
+    < "hello";
+    1+2*i;
     '''
     error_code = """
     > 1 * 2 * 4*;

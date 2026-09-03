@@ -282,11 +282,13 @@ class Compiler:
                             temp_numbers.clear()
                             self.aststack.clear()
                             break
+
                         num = temp_numbers.pop()
                         op_node = temp_masks.pop()
                         op_node.left = temp_numbers.pop()
                         op_node.right = num
                         temp_numbers.append(op_node)
+
                     if errorflag:
                         if (len(self.aststack) != 0
                             # 是输入输出
@@ -300,7 +302,8 @@ class Compiler:
 
                         else:
                             self.aststack.append(temp_numbers.pop())
-                
+
+                if errorflag:
                     if type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
                         self.aststack[-1].left = list_number
                         self.aststack[-1].packaged = True
@@ -313,17 +316,6 @@ class Compiler:
 
                     if not self.aststack[-1].packaged:
                         self.aststack[-1].packaged = True
-                
-                if DEBUG:
-                    print(f"Compiler [{self.line} line]: 空行，跳过")
-
-                else:
-                    info_list = ["编译了一个分号, 什么都没有发生",
-                                 "编译成功！输出了一个滚木！",
-                                 "滚木！",
-                                 "编译器什么都没有干, 并且很生气的说出了这句话",
-                                 "解锁成就： 一行空气"]
-                    print(f"Compiler [{self.line} line]: {random.choice(info_list)}")
 
                 list_number = []
 

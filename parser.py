@@ -132,25 +132,28 @@ class Parser:
                     temp_numbers.append(op_node)
             
             elif token_type == "TOKEN_OUTPUT":
-                self.aststack.append(OUTPUT(data))
+                self.aststack.append(OUTPUT())
 
             elif token_type == "TOKEN_INPUT":
                 if len(self.aststack) != 0:
                     if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
-                        self.aststack.append(INPUT(data, var=self.aststack.pop()))
+                        self.aststack.append(INPUT(var=self.aststack.pop()))
+                    else:
+                        self.aststack.append(INPUT())
                 else:
-                    self.aststack.append(INPUT(data))
+                    self.aststack.append(INPUT())
 
 
             elif token_type == "TOKEN_STRING":
                 if (type(self.aststack[-1]) is Identifier
-                    and not self.aststack[-1].packaged):
-                    self.aststack[-1].left = String(data)
+                    and not self.aststack[-1].packaged
+                    and self.aststack[-1].var == None):
+                    self.aststack[-1].var = String(data)
 
                 elif (type(self.aststack[-1]) is INPUT
-                      and self.aststack[-1].var == None
+                      and self.aststack[-1].data == None
                       and not self.aststack[-1].packaged):
-                    self.aststack[-1].var = String(data)
+                    self.aststack[-1].data = String(data)
 
                 elif (type(self.aststack[-1]) is OUTPUT
                       and self.aststack[-1].data == None
@@ -158,7 +161,7 @@ class Parser:
                     self.aststack[-1].data = String(data)
 
                 else:
-                    self.aststack[-1].data = String(data)
+                    self.aststack.append(String(data))
 
             elif token_type == "TOKEN_IDENTIFIER":
                 if len(self.aststack) == 0:
@@ -169,9 +172,9 @@ class Parser:
                     temp_numbers.append(Identifier(data))
             
                 elif (type(self.aststack[-1]) is INPUT
-                      and self.aststack[-1].var == None
+                      and self.aststack[-1].data == None
                       and not self.aststack[-1].packaged):
-                    self.aststack[-1].var = Identifier(data)
+                    self.aststack[-1].data = Identifier(data)
                 
                 elif (type(self.aststack[-1]) is OUTPUT
                       and self.aststack[-1].data == None
@@ -212,18 +215,27 @@ class Parser:
 
                     if errorflag:
                         if (len(self.aststack) != 0
-                            and self.aststack[-1].data in (">", "<")
-                            and self.aststack[-1].left == None
+                            and type(self.aststack[-1]) is INPUT
+                            and self.aststack[-1].data == None
                             and not self.aststack[-1].packaged):
-                            self.aststack[-1].left = temp_numbers.pop()
+                            self.aststack[-1].data = temp_numbers.pop()
+                            self.aststack[-1].packaged = True
+
+                        elif (len(self.aststack) != 0
+                            and type(self.aststack[-1]) is OUTPUT
+                            and self.aststack[-1].data == None
+                            and not self.aststack[-1].packaged):
+                            self.aststack[-1].data = temp_numbers.pop()
                             self.aststack[-1].packaged = True
 
                         else:
                             self.aststack.append(temp_numbers.pop())
 
                 if errorflag:
-                    if type(self.aststack[-1]) is Identifier and self.aststack[-1].left == None:
-                        self.aststack[-1].left = list_number
+                    if (len(list_number) > 0
+                        and type(self.aststack[-1]) is Identifier
+                        and self.aststack[-1].var == None):
+                        self.aststack[-1].var = List(list_number)
                         self.aststack[-1].packaged = True
 
                     if len(temp_numbers) == 1:

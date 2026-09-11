@@ -42,6 +42,11 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
+str "hello";
+> a;
+-1 * 2 + 3;
+a 24;
+a < str;
 < "Hello!";
 a < "请输入";
 a;

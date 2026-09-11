@@ -8,7 +8,7 @@
 #             See for details /LICENSE
 # ==================================================
 class ASTNode:
-    def __init__(self, data, left=None, right=None, condition=None):
+    def __init__(self, data):
         self.data = data
         self.packaged = False
 
@@ -67,7 +67,7 @@ class Identifier(ASTNode):
         self.var = var
 
     def __repr__(self):
-        return f"Identifier({self.data!r})"
+        return f"Identifier({self.data!r}, var={self.var!r})"
 
 """
 控制流/ Control Flow
@@ -86,7 +86,7 @@ class Condition(ASTNode):
 输入输出/ Input and Output
 """
 class OUTPUT(ASTNode):
-    def __init__(self, arg):
+    def __init__(self, arg=None):
         super().__init__(data=arg)
 
 
@@ -94,9 +94,9 @@ class OUTPUT(ASTNode):
         return f"OUTPUT(arg={self.data!r})"
 
 class INPUT(ASTNode):
-    def __init__(self, arg, var=None):
+    def __init__(self, arg=None, var=None):
         super().__init__(data=arg)
         self.var = var
 
     def __repr__(self):
-        return f"INPUT({self.data!r} var={self.var!r})"
+        return f"INPUT(arg={self.data!r} var={self.var!r})"

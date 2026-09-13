@@ -26,6 +26,11 @@ a < "请输入";
 a;
 < "hello";
 1+2*i+1;
+1 ?> 10;
+a ?= 10;
+19 ?< b;
+a ?>= b;
+b ?<= 19;
 '''
 
 error_code = """
@@ -42,15 +47,7 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
-str "hello";
-> a;
--1 * 2 + 3;
-a 24;
-a < str;
-< "Hello!";
-a < "请输入";
-a;
-< "hello";
+1 * 2 * i;
 """
 
 text_code = code
@@ -59,7 +56,9 @@ lex = lexer.Lexer(text_code)
 for token in lex.tokenizer():
     print(token)
 
+line = 0
 par = parser.Parser(lex.token_code)
 par.parser()
 for node in par.aststack:
-    print(node)
+    line += 1
+    print(f"[ln {line}]: {node}")

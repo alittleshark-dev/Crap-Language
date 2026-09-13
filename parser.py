@@ -33,6 +33,12 @@ logging.basicConfig(
 
 class Parser:
     def __init__(self, token_code):
+        """
+        Parser初始化
+        self.aststack: list 这里是生成好的AST列表
+        line: int           生成到的行数
+        token_code: list    待转换AST 的 Token列表
+        """
         self.aststack = []
         self.line = 0
         self.token_code = token_code
@@ -47,21 +53,15 @@ class Parser:
             return 2
         return 0
 
-    def _reduce(self, temp_numbers, temp_masks, start=0):
-        """从 temp_masks[start:] 开始归约，结果压入 temp_numbers"""
-        while len(temp_masks) > start:
-            op_node = temp_masks.pop()
-            if len(temp_numbers) < 2:
-                print(f"Syntax error [line {self.line}]: Missing operand for '{op_node.data}'")
-                return False
-            right = temp_numbers.pop()
-            left = temp_numbers.pop()
-            op_node.left = left
-            op_node.right = right
-            temp_numbers.append(op_node)
-        return True
-
     def parser(self):
+        """
+        bracker_stack: list 用来处理括号
+        temp_numbers: list  临时放数字的栈
+        temp_masks: list    临时存放符合的栈
+        list_number: list   存放数字变量
+        temp_minus: str     存放是不是负数
+        errorflag: bool     报错标签防止报错依旧处理
+        """
         bracket_stack = []
         temp_numbers = []
         temp_masks = []
@@ -70,28 +70,30 @@ class Parser:
         errorflag = True
 
         for token in self.token_code:
-            logging.debug(
-                f"[Compiler] [sub] [Parser] [ln {self.line}]\n"
-                f"now_token: {token}\n"
-                f"bracket_stack: {bracket_stack}\n"
-                f"temp_number: {temp_numbers}\n"
-                f"temp_masks: {temp_masks}\n"
-                f"list_number: {list_number}\n"
-                f"temp_minus: {temp_minus}\n"
-                f"gen_aststack: {self.aststack}\n"
-            )
+            # logging.debug(
+            #     f"[Compiler] [sub] [Parser] [ln {self.line}]\n"
+            #     f"now_token: {token}\n"
+            #     f"bracket_stack: {bracket_stack}\n"
+            #     f"temp_number: {temp_numbers}\n"
+            #     f"temp_masks: {temp_masks}\n"
+            #     f"list_number: {list_number}\n"
+            #     f"temp_minus: {temp_minus}\n"
+            #     f"gen_aststack: {self.aststack}\n"
+            # )
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
-                if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
+                if (len(self.aststack) != 0 
+                    and type(self.aststack[-1]) is Identifier
+                    and self.aststack[-1].packaged == False):
                     list_number.append(Number(data))
                 
-                elif temp_minus == "-":
+                elif (len(self.aststack) != 0 and temp_minus == "-"):
                     temp_numbers.append(UnaryOp("-", data))
                     temp_minus = None
                 
                 else:
                     temp_numbers.append(Number(data))
-                
+            
             elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
                 # 优先级
                 while len(temp_masks) != 0 and\
@@ -132,16 +134,16 @@ class Parser:
                     temp_numbers.append(op_node)
             
             elif token_type == "TOKEN_OUTPUT":
-                self.aststack.append(OUTPUT())
+                self.aststack.append(Output())
 
             elif token_type == "TOKEN_INPUT":
                 if len(self.aststack) != 0:
                     if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
-                        self.aststack.append(INPUT(var=self.aststack.pop()))
+                        self.aststack.append(Input(var=self.aststack.pop()))
                     else:
-                        self.aststack.append(INPUT())
+                        self.aststack.append(Input())
                 else:
-                    self.aststack.append(INPUT())
+                    self.aststack.append(Input())
 
 
             elif token_type == "TOKEN_STRING":
@@ -150,12 +152,12 @@ class Parser:
                     and self.aststack[-1].var == None):
                     self.aststack[-1].var = String(data)
 
-                elif (type(self.aststack[-1]) is INPUT
+                elif (type(self.aststack[-1]) is Input
                       and self.aststack[-1].data == None
                       and not self.aststack[-1].packaged):
                     self.aststack[-1].data = String(data)
 
-                elif (type(self.aststack[-1]) is OUTPUT
+                elif (type(self.aststack[-1]) is Output
                       and self.aststack[-1].data == None
                       and not self.aststack[-1].packaged):
                     self.aststack[-1].data = String(data)
@@ -164,19 +166,19 @@ class Parser:
                     self.aststack.append(String(data))
 
             elif token_type == "TOKEN_IDENTIFIER":
-                if len(self.aststack) == 0:
+                if (len(self.aststack) == 0 and len(temp_numbers) == 0):
                     self.aststack.append(Identifier(data))
                     continue
             
-                if len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0:
+                if (len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0):
                     temp_numbers.append(Identifier(data))
             
-                elif (type(self.aststack[-1]) is INPUT
+                elif (type(self.aststack[-1]) is Input
                       and self.aststack[-1].data == None
                       and not self.aststack[-1].packaged):
                     self.aststack[-1].data = Identifier(data)
                 
-                elif (type(self.aststack[-1]) is OUTPUT
+                elif (type(self.aststack[-1]) is Output
                       and self.aststack[-1].data == None
                       and not self.aststack[-1].packaged):
                     self.aststack[-1].data = Identifier(data)
@@ -215,14 +217,14 @@ class Parser:
 
                     if errorflag:
                         if (len(self.aststack) != 0
-                            and type(self.aststack[-1]) is INPUT
+                            and type(self.aststack[-1]) is Input
                             and self.aststack[-1].data == None
                             and not self.aststack[-1].packaged):
                             self.aststack[-1].data = temp_numbers.pop()
                             self.aststack[-1].packaged = True
 
                         elif (len(self.aststack) != 0
-                            and type(self.aststack[-1]) is OUTPUT
+                            and type(self.aststack[-1]) is Output
                             and self.aststack[-1].data == None
                             and not self.aststack[-1].packaged):
                             self.aststack[-1].data = temp_numbers.pop()
@@ -235,7 +237,7 @@ class Parser:
                     if (len(list_number) > 0
                         and type(self.aststack[-1]) is Identifier
                         and self.aststack[-1].var == None):
-                        self.aststack[-1].var = List(list_number)
+                        self.aststack[-1].var = ListNode(list_number)
                         self.aststack[-1].packaged = True
 
                     if len(temp_numbers) == 1:

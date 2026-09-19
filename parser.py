@@ -61,6 +61,7 @@ class Parser:
         list_number: list   存放数字变量
         temp_minus: str     存放是不是负数
         errorflag: bool     报错标签防止报错依旧处理
+        is_IF               用来判断是不是比较运算符
         """
         bracket_stack = []
         temp_numbers = []
@@ -68,6 +69,7 @@ class Parser:
         list_number = []
         temp_minus = None
         errorflag = True
+        is_IF = False
 
         for token in self.token_code:
             # logging.debug(
@@ -93,6 +95,48 @@ class Parser:
                 
                 else:
                     temp_numbers.append(Number(data))
+
+
+            elif token_type == "TOKEN_STRING":
+                if (type(self.aststack[-1]) is Identifier
+                    and not self.aststack[-1].packaged
+                    and self.aststack[-1].var == None):
+                    self.aststack[-1].var = String(data)
+
+                elif (type(self.aststack[-1]) is Input
+                        and self.aststack[-1].data == None
+                        and not self.aststack[-1].packaged
+                        and not is_IF):
+                    self.aststack[-1].data = String(data)
+
+                elif (type(self.aststack[-1]) is Output
+                        and self.aststack[-1].data == None
+                        and not self.aststack[-1].packaged):
+                    self.aststack[-1].data = String(data)
+
+                else:
+                    self.aststack.append(String(data))
+
+            elif token_type == "TOKEN_IDENTIFIER":
+                if (len(self.aststack) == 0 and len(temp_numbers) == 0):
+                    self.aststack.append(Identifier(data))
+                    continue
+            
+                if (len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0):
+                    temp_numbers.append(Identifier(data))
+            
+                elif (type(self.aststack[-1]) is Input
+                        and self.aststack[-1].data == None
+                        and not self.aststack[-1].packaged):
+                    self.aststack[-1].data = Identifier(data)
+                
+                elif (type(self.aststack[-1]) is Output
+                        and self.aststack[-1].data == None
+                        and not self.aststack[-1].packaged):
+                    self.aststack[-1].data = Identifier(data)
+                
+                else:
+                    self.aststack.append(Identifier(data))
             
             elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
                 # 优先级
@@ -132,11 +176,22 @@ class Parser:
                     op_node.right = right
 
                     temp_numbers.append(op_node)
+
+            elif is_IF:
+                if token_type in ("TOKEN_STRING", "TOKEN_IDENTIFIER", "NUMBER_EQUAL"):
+                    # TODO 检查aststack前一个是不是数字变量或者表达式
+                    # TODO CoSmpare(data, left=self.aststack(-1))
+                    pass
+                else:
+                    pass
+
+            elif token_type == "TOKEN_IF":
+                is_IF == True
             
-            elif token_type == "TOKEN_OUTPUT":
+            elif (token_type == "TOKEN_OUTPUT" and not is_IF):
                 self.aststack.append(Output())
 
-            elif token_type == "TOKEN_INPUT":
+            elif (token_type == "TOKEN_INPUT" and not is_IF):
                 if len(self.aststack) != 0:
                     if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
                         self.aststack.append(Input(var=self.aststack.pop()))
@@ -144,48 +199,6 @@ class Parser:
                         self.aststack.append(Input())
                 else:
                     self.aststack.append(Input())
-
-
-            elif token_type == "TOKEN_STRING":
-                if (type(self.aststack[-1]) is Identifier
-                    and not self.aststack[-1].packaged
-                    and self.aststack[-1].var == None):
-                    self.aststack[-1].var = String(data)
-
-                elif (type(self.aststack[-1]) is Input
-                      and self.aststack[-1].data == None
-                      and not self.aststack[-1].packaged):
-                    self.aststack[-1].data = String(data)
-
-                elif (type(self.aststack[-1]) is Output
-                      and self.aststack[-1].data == None
-                      and not self.aststack[-1].packaged):
-                    self.aststack[-1].data = String(data)
-
-                else:
-                    self.aststack.append(String(data))
-
-            elif token_type == "TOKEN_IDENTIFIER":
-                if (len(self.aststack) == 0 and len(temp_numbers) == 0):
-                    self.aststack.append(Identifier(data))
-                    continue
-            
-                if (len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0):
-                    temp_numbers.append(Identifier(data))
-            
-                elif (type(self.aststack[-1]) is Input
-                      and self.aststack[-1].data == None
-                      and not self.aststack[-1].packaged):
-                    self.aststack[-1].data = Identifier(data)
-                
-                elif (type(self.aststack[-1]) is Output
-                      and self.aststack[-1].data == None
-                      and not self.aststack[-1].packaged):
-                    self.aststack[-1].data = Identifier(data)
-                
-                else:
-                    self.aststack.append(Identifier(data))
-
 
             elif token_type == "TOKEN_END":
                 self.line += 1

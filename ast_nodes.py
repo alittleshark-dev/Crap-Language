@@ -1,4 +1,4 @@
-#              -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 # ==================================================
 #                File: ./ast_nodes.py
@@ -7,6 +7,7 @@
 #                   MIT License
 #             See for details /LICENSE
 # ==================================================
+
 class ASTNode:
     """
     所有AST节点的基类
@@ -18,9 +19,13 @@ class ASTNode:
 
 
 """
-数据类型/ Data types
+数据类型 / Data types
 """
-class Number(ASTNode):
+class Expression(ASTNode):
+    """表达式基类：会产生一个值"""
+    pass
+
+class Number(Expression):
     """
     数字类型
     """
@@ -31,7 +36,7 @@ class Number(ASTNode):
     def __repr__(self):
         return f"Number({self.data!r})"
 
-class UnaryOp(ASTNode):
+class UnaryOp(Expression):
     """
     一元运算符（如负号）
     """
@@ -46,7 +51,7 @@ class UnaryOp(ASTNode):
     def __repr__(self):
         return f"UnaryOp({self.data!r} operand={self.operand!r})"
 
-class String(ASTNode):
+class String(Expression):
     """
     字符串
     """
@@ -59,7 +64,7 @@ class String(ASTNode):
     def __repr__(self):
         return f"String({self.data!r})"
 
-class ListNode(ASTNode):
+class ListNode(Expression):
     """
     列表
     """
@@ -72,10 +77,11 @@ class ListNode(ASTNode):
     def __repr__(self):
         return f"ListNode({self.data!r})"
 
+
 """
-运算符/ Operators
+表达式 / Expression
 """
-class BinOp(ASTNode):
+class BinOp(Expression):
     """
     二元运算符
     """
@@ -92,10 +98,11 @@ class BinOp(ASTNode):
     def __repr__(self):
         return f"BinOp({self.data!r} left={self.left!r} right={self.right!r})"
 
+
 """
-变量/ Variables
+变量 / Variables
 """
-class Identifier(ASTNode):
+class Identifier(Expression):
     """
     变量
     """
@@ -110,18 +117,60 @@ class Identifier(ASTNode):
     def __repr__(self):
         return f"Identifier({self.data!r}, var={self.var!r})"
 
+
 """
-控制流/ Control Flow
+比较表达式 / Compare
 """
-class Condition(ASTNode):
+class Compare(Expression):
+    """
+    比较表达式（如 a > b, x == y）
+    """
+    def __init__(self, left=None, operator=None, right=None):
+        """
+        left: 左操作数
+        operator: 比较运算符（如 ">", "<", "=="）
+        right: 右操作数
+        """
+        super().__init__(data=operator)
+        self.left = left
+        self.right = right
+
+    def __repr__(self):
+        return f"Compare({self.left!r} {self.data!r} {self.right!r})"
+
+class Gt(Compare):
+    """ 大于 """
+    pass
+
+class Lt(Compare):
+    """ 小于 """
+    pass
+
+class Eq(Compare):
+    """ 等于 """
+    pass
+
+
+"""
+语句 / Statement
+"""
+class Statement(ASTNode):
+    """语句基类：执行一个动作，不产生值"""
+    pass
+
+
+"""
+控制流 / Control Flow
+"""
+class Condition(Statement):
     """
     条件判断
     """
     def __init__(self, condition, left=None, right=None):
         """
         condition: 条件
-        left(default=None): 左子节点
-        right(default=None): 右子节点
+        left(default=None): 左子节点（if块）
+        right(default=None): 右子节点（else块）
         """
         super().__init__(data=condition)
         self.left = left
@@ -130,10 +179,11 @@ class Condition(ASTNode):
     def __repr__(self):
         return f"Condition(condition={self.data!r} left={self.left!r} right={self.right!r})"
 
+
 """
-输入输出/ Input and Output
+输入输出 / Input and Output
 """
-class Output(ASTNode):
+class Output(Statement):
     """
     输出
     """
@@ -146,7 +196,7 @@ class Output(ASTNode):
     def __repr__(self):
         return f"Output(arg={self.data!r})"
 
-class Input(ASTNode):
+class Input(Statement):
     """
     输入
     """

@@ -30,7 +30,8 @@ class Number(Expression):
     数字类型
     """
     def __init__(self, value):
-        """ value: 存放的数字 """
+        """数字类型
+           value: 存放的数字 """
         super().__init__(data=value)
 
     def __repr__(self):
@@ -41,7 +42,7 @@ class UnaryOp(Expression):
     一元运算符（如负号）
     """
     def __init__(self, operator, operand=None):
-        """
+        """一元运算符（如负号）
         operator: 操作符（如 "-"）
         operand: 操作数
         """
@@ -56,7 +57,7 @@ class String(Expression):
     字符串
     """
     def __init__(self, value):
-        """
+        """字符串
         value: 字符串内容
         """
         super().__init__(data=value)
@@ -69,7 +70,7 @@ class ListNode(Expression):
     列表
     """
     def __init__(self, elements):
-        """
+        """列表
         elements: 元素列表
         """
         super().__init__(data=elements)
@@ -86,7 +87,7 @@ class BinOp(Expression):
     二元运算符
     """
     def __init__(self, operator, left=None, right=None):
-        """
+        """二元运算符
         operator: 操作符
         left(default=None): 左子节点
         right(default=None): 右子节点
@@ -107,7 +108,7 @@ class Identifier(Expression):
     变量
     """
     def __init__(self, name, var=None):
-        """
+        """变量
         name: 变量名
         var(default=None): 值
         """
@@ -122,11 +123,8 @@ class Identifier(Expression):
 比较表达式 / Compare
 """
 class Compare(Expression):
-    """
-    比较表达式（如 a > b, x == y）
-    """
     def __init__(self, left=None, operator=None, right=None):
-        """
+        """比较表达式（如 a > b, x == y）
         left: 左操作数
         operator: 比较运算符（如 ">", "<", "=="）
         right: 右操作数
@@ -139,17 +137,40 @@ class Compare(Expression):
         return f"Compare({self.left!r} {self.data!r} {self.right!r})"
 
 class Gt(Compare):
-    """ 大于 """
-    pass
+    def __init__(self, left=None, right=None):
+        """大于
+        left: 左操作数
+        operator: 大于运算符>
+        right: 右操作数
+        """
+        super().__init__(left=left, operator=">", right=right)
+
+    def __repr__(self):
+        return f"Gt(Operator: {self.data} left: {self.left}) right: {self.right}"
 
 class Lt(Compare):
-    """ 小于 """
-    pass
+    def __init__(self, left=None, right=None):
+        """小于
+        left: 左操作数
+        operator: 小于运算符<
+        right: 右操作数
+        """
+        super().__init__(left=left, operator="<", right=right)
+
+    def __repr__(self):
+        return f"Lt(Operator: {self.data} left: {self.left}) right: {self.right}"
 
 class Eq(Compare):
-    """ 等于 """
-    pass
+    def __init__(self, left=None, right=None):
+        """等于
+        left: 左操作数
+        operator: 等于运算符=
+        right: 右操作数
+        """
+        super().__init__(left=left, operator="=", right=right)
 
+    def __repr__(self):
+        return f"Eq(Operator: {self.data} left: {self.left}) right: {self.right}"
 
 """
 语句 / Statement
@@ -167,7 +188,7 @@ class Condition(Statement):
     条件判断
     """
     def __init__(self, condition, left=None, right=None):
-        """
+        """条件判断
         condition: 条件
         left(default=None): 左子节点（if块）
         right(default=None): 右子节点（else块）
@@ -188,7 +209,7 @@ class Output(Statement):
     输出
     """
     def __init__(self, arg=None):
-        """
+        """输出
         arg: 输出的内容
         """
         super().__init__(data=arg)
@@ -201,7 +222,7 @@ class Input(Statement):
     输入
     """
     def __init__(self, arg=None, var=None):
-        """
+        """输入
         arg: 提示内容
         var: 传入的值
         """

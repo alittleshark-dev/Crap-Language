@@ -72,44 +72,59 @@ class Parser:
         is_IF = False
 
         for token in self.token_code:
-            # logging.debug(
-            #     f"[Compiler] [sub] [Parser] [ln {self.line}]\n"
-            #     f"now_token: {token}\n"
-            #     f"bracket_stack: {bracket_stack}\n"
-            #     f"temp_number: {temp_numbers}\n"
-            #     f"temp_masks: {temp_masks}\n"
-            #     f"list_number: {list_number}\n"
-            #     f"temp_minus: {temp_minus}\n"
-            #     f"gen_aststack: {self.aststack}\n"
-            # )
+            logging.debug(
+                f"[Compiler] [sub] [Parser] [ln {self.line}] [unloop]\n"
+                f"now_token: {token}\n"
+                f"bracket_stack: {bracket_stack}\n"
+                f"temp_number: {temp_numbers}\n"
+                f"temp_masks: {temp_masks}\n"
+                f"list_number: {list_number}\n"
+                f"temp_minus: {temp_minus}\n"
+                f"gen_aststack: {self.aststack}\n"
+            )
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
+                if (is_IF and type(self.aststack[-1]) in (Gt, Eq, Lt)
+                          and self.aststack[-1].right == None):
+                    self.aststack[-1].right = Number(data)
+                    is_IF=False
+                    continue
+
                 if (len(self.aststack) != 0 
                     and type(self.aststack[-1]) is Identifier
                     and self.aststack[-1].packaged == False):
                     list_number.append(Number(data))
+                    continue
                 
-                elif (len(self.aststack) != 0 and temp_minus == "-"):
+                if (len(self.aststack) != 0 and temp_minus == "-"):
                     temp_numbers.append(UnaryOp("-", data))
                     temp_minus = None
-                
+
                 else:
                     temp_numbers.append(Number(data))
 
 
-            elif token_type == "TOKEN_STRING":
+            if token_type == "TOKEN_STRING":
+                if (is_IF and type(self.aststack[-1]) in (Gt, Eq, Lt)
+                        and self.aststack[-1].right == None):
+                    self.aststack[-1].right = String(data)
+                    is_IF=False
+                    continue
+
                 if (type(self.aststack[-1]) is Identifier
                     and not self.aststack[-1].packaged
                     and self.aststack[-1].var == None):
                     self.aststack[-1].var = String(data)
+                    continue
 
-                elif (type(self.aststack[-1]) is Input
+                if (type(self.aststack[-1]) is Input
                         and self.aststack[-1].data == None
                         and not self.aststack[-1].packaged
                         and not is_IF):
                     self.aststack[-1].data = String(data)
+                    continue
 
-                elif (type(self.aststack[-1]) is Output
+                if (type(self.aststack[-1]) is Output
                         and self.aststack[-1].data == None
                         and not self.aststack[-1].packaged):
                     self.aststack[-1].data = String(data)
@@ -117,20 +132,28 @@ class Parser:
                 else:
                     self.aststack.append(String(data))
 
-            elif token_type == "TOKEN_IDENTIFIER":
+            if token_type == "TOKEN_IDENTIFIER":
+                if (is_IF and type(self.aststack[-1]) in (Gt, Eq, Lt)
+                          and self.aststack[-1].right == None):
+                    self.aststack[-1].right = Identifier(data)
+                    is_IF = False
+                    continue
+
                 if (len(self.aststack) == 0 and len(temp_numbers) == 0):
                     self.aststack.append(Identifier(data))
                     continue
             
                 if (len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0):
                     temp_numbers.append(Identifier(data))
+                    continue
             
-                elif (type(self.aststack[-1]) is Input
+                if (type(self.aststack[-1]) is Input
                         and self.aststack[-1].data == None
                         and not self.aststack[-1].packaged):
                     self.aststack[-1].data = Identifier(data)
+                    continue
                 
-                elif (type(self.aststack[-1]) is Output
+                if (type(self.aststack[-1]) is Output
                         and self.aststack[-1].data == None
                         and not self.aststack[-1].packaged):
                     self.aststack[-1].data = Identifier(data)
@@ -138,7 +161,7 @@ class Parser:
                 else:
                     self.aststack.append(Identifier(data))
             
-            elif token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
+            if token_type in ["TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV"]:
                 # 优先级
                 while len(temp_masks) != 0 and\
                         self.get_priority(temp_masks[-1].data) >= self.get_priority(token_type):
@@ -158,10 +181,11 @@ class Parser:
                 else:
                     temp_masks.append(BinOp(data))
 
-            elif token_type == "TOKEN_L_BRACKETS":
+            if token_type == "TOKEN_L_BRACKETS":
                 bracket_stack.append(len(temp_masks))
+                continue
 
-            elif token_type == "TOKEN_R_BRACKETS":
+            if token_type == "TOKEN_R_BRACKETS":
 
                 start_masks = bracket_stack.pop()
 
@@ -176,31 +200,84 @@ class Parser:
                     op_node.right = right
 
                     temp_numbers.append(op_node)
+                continue
 
-            elif is_IF:
-                if token_type in ("TOKEN_STRING", "TOKEN_IDENTIFIER", "NUMBER_EQUAL"):
-                    # TODO 检查aststack前一个是不是数字变量或者表达式
-                    # TODO CoSmpare(data, left=self.aststack(-1))
-                    pass
-                else:
-                    pass
-
-            elif token_type == "TOKEN_IF":
-                is_IF == True
+            if token_type == "TOKEN_IF":
+                is_IF = True
+                continue
             
-            elif (token_type == "TOKEN_OUTPUT" and not is_IF):
-                self.aststack.append(Output())
+            if token_type == "TOKEN_OUTPUT":
+                if is_IF:
+                    if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
+                        last_node = self.aststack.pop()
 
-            elif (token_type == "TOKEN_INPUT" and not is_IF):
+                    elif len(temp_numbers) == 1:
+                        last_node = temp_numbers.pop()
+                        if len(temp_numbers) != 0:
+                            print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
+                            errorflag = True
+                            break
+
+                    else:
+                        print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
+                        errorflag = True
+                        break
+                    self.aststack.append(Gt(left=last_node))
+                    continue
+
+                else:
+                    self.aststack.append(Output())
+
+            if token_type == "TOKEN_INPUT":
                 if len(self.aststack) != 0:
+                    if is_IF:
+                        if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
+                            last_node = self.aststack.pop()
+
+                        elif len(temp_numbers) != 0:
+                            last_node = temp_numbers.pop()
+                            if len(temp_numbers) != 0:
+                                print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
+                                errorflag = True
+                                break
+                        
+                        else:
+                            print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
+                            errorflag = True
+                            break
+                        self.aststack.append(Lt(left=last_node))
+                        continue
+
                     if type(self.aststack[-1]) is Identifier and self.aststack[-1].packaged == False:
                         self.aststack.append(Input(var=self.aststack.pop()))
+                        continue
+
                     else:
                         self.aststack.append(Input())
                 else:
                     self.aststack.append(Input())
 
-            elif token_type == "TOKEN_END":
+            if token_type == "TOKEN_EQUAL":
+                if len(self.aststack) != 0:
+                    if is_IF:
+                        if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
+                            last_node = self.aststack.pop()
+
+                        elif len(temp_numbers) != 0:
+                            last_node = temp_numbers.pop()
+                            if len(temp_numbers) != 0:
+                                print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
+                                errorflag = True
+                                break
+                        
+                        else:
+                            print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
+                            errorflag = True
+                            break
+                        self.aststack.append(Lt(left=last_node))
+                        continue
+
+            if token_type == "TOKEN_END":
                 self.line += 1
 
                 if len(temp_masks) != 0:
@@ -263,5 +340,17 @@ class Parser:
                         self.aststack[-1].packaged = True
 
                 list_number = []
+                temp_numbers = []
+            logging.debug(
+                f"[Compiler] [sub] [Parser] [ln {self.line}] [looped]\n"
+                f"now_token: {token}\n"
+                f"bracket_stack: {bracket_stack}\n"
+                f"temp_number: {temp_numbers}\n"
+                f"temp_masks: {temp_masks}\n"
+                f"list_number: {list_number}\n"
+                f"temp_minus: {temp_minus}\n"
+                f"gen_aststack: {self.aststack}\n"
+            )
+                
 
         return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"

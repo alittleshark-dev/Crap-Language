@@ -45,7 +45,8 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
-1 * 2 * i;
+1 ?> 10;
+19 ?< b;
 """
 
 text_code = code

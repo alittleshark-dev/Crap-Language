@@ -56,7 +56,7 @@ debug_code = """
 ;
 """
 
-text_code = debug_code
+text_code = code
 
 lex = lexer.Lexer(text_code)
 for token in lex.tokenizer():

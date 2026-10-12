@@ -295,7 +295,7 @@ class Parser:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
                             errorflag = True
                             break
-                        self.aststack.append(Lt(left=last_node))
+                        self.aststack.append(Eq(left=last_node))
                         continue
 
             if token_type == "TOKEN_END":

@@ -47,17 +47,24 @@ i 0; i ?> 10 !:;
 debug_code = """
 1 ?> 10;
 19 ?< b;
+1 ?> 10 > "是的"; : > "不是"; ;
+1 ?< 12
+    > "对的对的";
+        1 ?> 12
+            > "这是里面的判断！";:
+  : > "错的错的";
+;
 """
 
-text_code = code
+text_code = debug_code
 
 lex = lexer.Lexer(text_code)
 for token in lex.tokenizer():
     print(token)
 
-line = 0
+line = 1
 par = parser.Parser(lex.token_code)
 par.parser()
 for node in par.aststack:
-    line += 1
     print(f"[ln {line}]: {node}")
+    line += 1

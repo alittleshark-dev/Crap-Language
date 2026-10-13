@@ -47,16 +47,17 @@ i 0; i ?> 10 !:;
 debug_code = """
 1 ?> 10;
 19 ?< b;
-1 ?> 10 > "是的"; : > "不是"; ;
-1 ?< 12
-    > "对的对的";
-        1 ?> 12
-            > "这是里面的判断！";:
-  : > "错的错的";
-;
+1 ?> 10
+> "是的";
+> "对的对的";
+: > "不是"; ;
+
 """
 
 text_code = code
+
+print("Input: Code")
+print(text_code)
 
 lex = lexer.Lexer(text_code)
 for token in lex.tokenizer():

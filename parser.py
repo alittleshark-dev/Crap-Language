@@ -73,21 +73,24 @@ class Parser:
         true_branch_list = []
         false_branch_list = []
         true_branch = True
+        debug = False
 
         for token in self.token_code:
-            logging.debug(
-                f"[Compiler] [sub] [Parser] [ln {self.line}] [unloop]\n"
-                f"now_token: {token}\n"
-                f"bracket_stack: {bracket_stack}\n"
-                f"true_branch_list: {true_branch_list}\n"
-                f"false_branch_list: {false_branch_list}\n"
-                f"true_branch: {true_branch}\n"
-                f"temp_number: {temp_numbers}\n"
-                f"temp_masks: {temp_masks}\n"
-                f"list_number: {list_number}\n"
-                f"temp_minus: {temp_minus}\n"
-                f"gen_aststack: {self.aststack}\n"
-            )
+            if debug:
+                logging.debug(
+                    f"[Compiler] [sub] [Parser] [ln {self.line}] [unloop]\n"
+                    f"now_token: {token}\n"
+                    f"Packaged? {'Not Find' if len(self.aststack) == 0 else self.aststack[-1].packaged}\n"
+                    f"bracket_stack: {bracket_stack}\n"
+                    f"true_branch_list: {true_branch_list}\n"
+                    f"false_branch_list: {false_branch_list}\n"
+                    f"true_branch: {true_branch}\n"
+                    f"temp_number: {temp_numbers}\n"
+                    f"temp_masks: {temp_masks}\n"
+                    f"list_number: {list_number}\n"
+                    f"temp_minus: {temp_minus}\n"
+                    f"gen_aststack: {self.aststack}\n"
+                )
             token_type, data = token
             if token_type == "TOKEN_NUMBER":
                 if (is_IF and type(self.aststack[-1]) in (Gt, Eq, Lt)
@@ -221,11 +224,6 @@ class Parser:
                 true_branch_list.clear()
                 true_branch = False
                 continue
-
-            else:
-                errorflag = True
-                print("")
-                
             
             if token_type == "TOKEN_OUTPUT":
                 if is_IF:
@@ -236,12 +234,12 @@ class Parser:
                         last_node = temp_numbers.pop()
                         if len(temp_numbers) != 0:
                             print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
-                            errorflag = True
+                            errorflag = False
                             break
 
                     else:
                         print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
-                        errorflag = True
+                        errorflag = False
                         break
                     self.aststack.append(Gt(left=last_node))
                     continue
@@ -259,12 +257,12 @@ class Parser:
                             last_node = temp_numbers.pop()
                             if len(temp_numbers) != 0:
                                 print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
-                                errorflag = True
+                                errorflag = False
                                 break
                         
                         else:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
-                            errorflag = True
+                            errorflag = False
                             break
                         self.aststack.append(Lt(left=last_node))
                         continue
@@ -288,12 +286,12 @@ class Parser:
                             last_node = temp_numbers.pop()
                             if len(temp_numbers) != 0:
                                 print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
-                                errorflag = True
+                                errorflag = False
                                 break
                         
                         else:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
-                            errorflag = True
+                            errorflag = False
                             break
                         self.aststack.append(Eq(left=last_node))
                         continue
@@ -305,7 +303,7 @@ class Parser:
                     while len(temp_masks) != 0:
                         if len(temp_numbers) > 2 and len(temp_masks) == 1:
                             print(f"Syntax error [{self.line} line]: Missing operator between numbers")
-                            errorflag = False('19')
+                            errorflag = False
                             temp_masks.clear()
                             temp_numbers.clear()
                             self.aststack.clear()
@@ -360,12 +358,12 @@ class Parser:
                     if (len(self.aststack) > 1
                        and type(self.aststack[-2]) in (Eq, Lt, Gt, Condition)
                        and self.aststack[-2].packaged == False):
-                            if true_branch == True:
+                            if true_branch:
                                 true_branch_list.append(self.aststack.pop())
                             else:
                                 false_branch_list.append(self.aststack.pop())
                     
-                    elif (len(self.aststack) > 1
+                    if (len(self.aststack) > 1
                         and type(self.aststack[-1]) is Condition
                         and self.aststack[-1].right == None
                         and len(false_branch_list) > 0):
@@ -373,24 +371,28 @@ class Parser:
                         false_branch_list.clear()
                         true_branch = True
 
-                    elif not self.aststack[-1].packaged:
+                    if (self.aststack[-1].packaged == False
+                        and type(self.aststack[-1]) in (Eq, Lt, Gt, Condition)
+                        and self.aststack[-1].right != None and self.aststack[-1].left != None
+                        and len(true_branch_list) == 0 and len(false_branch_list) == 0):
                         self.aststack[-1].packaged = True
 
                 list_number = []
                 temp_numbers = []
-            logging.debug(
-                f"[Compiler] [sub] [Parser] [ln {self.line}] [looped]\n"
-                f"now_token: {token}\n"
-                f"Packaged? {'Not Find' if len(self.aststack) == 0 else self.aststack[-1].packaged}\n"
-                f"bracket_stack: {bracket_stack}\n"
-                f"true_branch_list: {true_branch_list}\n"
-                f"false_branch_list: {false_branch_list}\n"
-                f"true_branch: {true_branch}\n"
-                f"temp_number: {temp_numbers}\n"
-                f"temp_masks: {temp_masks}\n"
-                f"list_number: {list_number}\n"
-                f"temp_minus: {temp_minus}\n"
-                f"gen_aststack: {self.aststack}\n"
-            )
+            if debug:
+                logging.debug(
+                    f"[Compiler] [sub] [Parser] [ln {self.line}] [looped]\n"
+                    f"now_token: {token}\n"
+                    f"Packaged? {'Not Find' if len(self.aststack) == 0 else self.aststack[-1].packaged}\n"
+                    f"bracket_stack: {bracket_stack}\n"
+                    f"true_branch_list: {true_branch_list}\n"
+                    f"false_branch_list: {false_branch_list}\n"
+                    f"true_branch: {true_branch}\n"
+                    f"temp_number: {temp_numbers}\n"
+                    f"temp_masks: {temp_masks}\n"
+                    f"list_number: {list_number}\n"
+                    f"temp_minus: {temp_minus}\n"
+                    f"gen_aststack: {self.aststack}\n"
+                )
 
         return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"

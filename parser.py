@@ -73,7 +73,7 @@ class Parser:
         true_branch_list = []
         false_branch_list = []
         true_branch = True
-        debug = False
+        debug = True
 
         for token in self.token_code:
             if debug:
@@ -142,12 +142,19 @@ class Parser:
                     self.aststack.append(String(data))
 
             if token_type == "TOKEN_IDENTIFIER":
+                if (len(self.aststack) != 0
+                    and type(self.aststack[-1])is Identifier
+                    and self.aststack[-1].packaged  == False
+                    and self.aststack[-1].var == None):
+                    self.aststack[-1].var = Identifier(data)
+                    continue
+
                 if (is_IF and type(self.aststack[-1]) in (Gt, Eq, Lt)
                           and self.aststack[-1].right == None):
                     self.aststack[-1].right = Identifier(data)
                     is_IF = False
                     continue
-
+                
                 if (len(self.aststack) == 0 and len(temp_numbers) == 0):
                     self.aststack.append(Identifier(data))
                     continue

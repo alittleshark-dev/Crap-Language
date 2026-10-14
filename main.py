@@ -45,16 +45,10 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
-1 ?> 10;
-19 ?< b;
-1 ?> 10
-> "是的";
-> "对的对的";
-: > "不是"; ;
-
+a b;
 """
 
-text_code = code
+text_code =debug_code
 
 print("Input: Code")
 print(text_code)

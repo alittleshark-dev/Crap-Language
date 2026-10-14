@@ -3,6 +3,7 @@
 # ==================================================
 #                File: ./parser.py
 #        Copyright © alittleshark-dev 2026
+#              docs: ./docs/parser.md
 #               Licensed under the 
 #                   MIT License
 #             See for details /LICENSE
@@ -55,20 +56,25 @@ class Parser:
 
     def parser(self):
         """
-        bracker_stack: list 用来处理括号
-        temp_numbers: list  临时放数字的栈
-        temp_masks: list    临时存放符合的栈
-        list_number: list   存放数字变量
-        temp_minus: str     存放是不是负数
-        errorflag: bool     报错标签防止报错依旧处理
-        is_IF               用来判断是不是比较运算符
+        bracket_stack: list        用来处理括号
+        temp_vars: list            临时存放表达式中的数字/节点
+        temp_masks: list           临时存放运算符的栈
+        list_number: list          临时存放列表元素
+        temp_minus: str            标记一元负号（None 或 "-"）
+        running: bool              是否继续解析，出错时置 False
+        is_IF: bool                标记是否在 ? 之后，决定 > < = 是比较还是输入输出
+        true_branch_list: list     用来存放真分支的语句
+        false_branch_list: list    用来存放假分支的语句
+        true_branch: bool          当前是否在真分支
+        debug: bool                调试开关
         """
+
         bracket_stack = []
-        temp_numbers = []
+        temp_vars = []
         temp_masks = []
         list_number = []
         temp_minus = None
-        errorflag = True
+        running = True
         is_IF = False
         true_branch_list = []
         false_branch_list = []
@@ -85,7 +91,7 @@ class Parser:
                     f"true_branch_list: {true_branch_list}\n"
                     f"false_branch_list: {false_branch_list}\n"
                     f"true_branch: {true_branch}\n"
-                    f"temp_number: {temp_numbers}\n"
+                    f"temp_number: {temp_vars}\n"
                     f"temp_masks: {temp_masks}\n"
                     f"list_number: {list_number}\n"
                     f"temp_minus: {temp_minus}\n"
@@ -106,11 +112,11 @@ class Parser:
                     continue
                 
                 if (len(self.aststack) != 0 and temp_minus == "-"):
-                    temp_numbers.append(UnaryOp("-", data))
+                    temp_vars.append(UnaryOp("-", data))
                     temp_minus = None
 
                 else:
-                    temp_numbers.append(Number(data))
+                    temp_vars.append(Number(data))
 
 
             if token_type == "TOKEN_STRING":
@@ -155,12 +161,12 @@ class Parser:
                     is_IF = False
                     continue
                 
-                if (len(self.aststack) == 0 and len(temp_numbers) == 0):
+                if (len(self.aststack) == 0 and len(temp_vars) == 0):
                     self.aststack.append(Identifier(data))
                     continue
             
-                if (len(temp_masks) == len(temp_numbers) and len(temp_numbers) != 0):
-                    temp_numbers.append(Identifier(data))
+                if (len(temp_masks) == len(temp_vars) and len(temp_vars) != 0):
+                    temp_vars.append(Identifier(data))
                     continue
             
                 if (type(self.aststack[-1]) is Input
@@ -184,14 +190,14 @@ class Parser:
 
                     op_node = temp_masks.pop()
 
-                    right = temp_numbers.pop()
-                    left = temp_numbers.pop()
+                    right = temp_vars.pop()
+                    left = temp_vars.pop()
 
                     op_node.left = left
                     op_node.right = right
-                    temp_numbers.append(op_node)
+                    temp_vars.append(op_node)
 
-                if token_type == "TOKEN_MINUS" and len(temp_numbers) == 0:
+                if token_type == "TOKEN_MINUS" and len(temp_vars) == 0:
                     temp_minus = data
                 
                 else:
@@ -209,13 +215,13 @@ class Parser:
 
                     op_node = temp_masks.pop()
 
-                    right = temp_numbers.pop()
-                    left = temp_numbers.pop()
+                    right = temp_vars.pop()
+                    left = temp_vars.pop()
 
                     op_node.left = left
                     op_node.right = right
 
-                    temp_numbers.append(op_node)
+                    temp_vars.append(op_node)
                 continue
 
             if token_type == "TOKEN_IF":
@@ -237,16 +243,16 @@ class Parser:
                     if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
                         last_node = self.aststack.pop()
 
-                    elif len(temp_numbers) == 1:
-                        last_node = temp_numbers.pop()
-                        if len(temp_numbers) != 0:
+                    elif len(temp_vars) == 1:
+                        last_node = temp_vars.pop()
+                        if len(temp_vars) != 0:
                             print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
-                            errorflag = False
+                            running = False
                             break
 
                     else:
                         print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
-                        errorflag = False
+                        running = False
                         break
                     self.aststack.append(Gt(left=last_node))
                     continue
@@ -260,16 +266,16 @@ class Parser:
                         if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
                             last_node = self.aststack.pop()
 
-                        elif len(temp_numbers) != 0:
-                            last_node = temp_numbers.pop()
-                            if len(temp_numbers) != 0:
+                        elif len(temp_vars) != 0:
+                            last_node = temp_vars.pop()
+                            if len(temp_vars) != 0:
                                 print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
-                                errorflag = False
+                                running = False
                                 break
                         
                         else:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
-                            errorflag = False
+                            running = False
                             break
                         self.aststack.append(Lt(left=last_node))
                         continue
@@ -289,16 +295,16 @@ class Parser:
                         if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
                             last_node = self.aststack.pop()
 
-                        elif len(temp_numbers) != 0:
-                            last_node = temp_numbers.pop()
-                            if len(temp_numbers) != 0:
+                        elif len(temp_vars) != 0:
+                            last_node = temp_vars.pop()
+                            if len(temp_vars) != 0:
                                 print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
-                                errorflag = False
+                                running = False
                                 break
                         
                         else:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
-                            errorflag = False
+                            running = False
                             break
                         self.aststack.append(Eq(left=last_node))
                         continue
@@ -308,56 +314,56 @@ class Parser:
 
                 if len(temp_masks) != 0:
                     while len(temp_masks) != 0:
-                        if len(temp_numbers) > 2 and len(temp_masks) == 1:
+                        if len(temp_vars) > 2 and len(temp_masks) == 1:
                             print(f"Syntax error [{self.line} line]: Missing operator between numbers")
-                            errorflag = False
+                            running = False
                             temp_masks.clear()
-                            temp_numbers.clear()
+                            temp_vars.clear()
                             self.aststack.clear()
                             break
 
-                        if len(temp_masks) == len(temp_numbers) and type(self.aststack[-1]) is not Identifier:
+                        if len(temp_masks) == len(temp_vars) and type(self.aststack[-1]) is not Identifier:
                             missing_op = temp_masks[-1].data
                             print(f"Syntax error [{self.line} line]: Missing right operand for '{missing_op}'")
-                            errorflag = False
+                            running = False
                             temp_masks.clear()
-                            temp_numbers.clear()
+                            temp_vars.clear()
                             self.aststack.clear()
                             break
 
-                        num = temp_numbers.pop()
+                        num = temp_vars.pop()
                         op_node = temp_masks.pop()
-                        op_node.left = temp_numbers.pop()
+                        op_node.left = temp_vars.pop()
                         op_node.right = num
-                        temp_numbers.append(op_node)
+                        temp_vars.append(op_node)
 
-                    if errorflag:
+                    if running:
                         if (len(self.aststack) != 0
                             and type(self.aststack[-1]) is Input
                             and self.aststack[-1].data == None
                             and not self.aststack[-1].packaged):
-                            self.aststack[-1].data = temp_numbers.pop()
+                            self.aststack[-1].data = temp_vars.pop()
                             self.aststack[-1].packaged = True
 
                         elif (len(self.aststack) != 0
                             and type(self.aststack[-1]) is Output
                             and self.aststack[-1].data == None
                             and not self.aststack[-1].packaged):
-                            self.aststack[-1].data = temp_numbers.pop()
+                            self.aststack[-1].data = temp_vars.pop()
                             self.aststack[-1].packaged = True
 
                         else:
-                            self.aststack.append(temp_numbers.pop())
+                            self.aststack.append(temp_vars.pop())
 
-                if errorflag:
+                if running:
                     if (len(list_number) > 0
                         and type(self.aststack[-1]) is Identifier
                         and self.aststack[-1].var == None):
                         self.aststack[-1].var = ListNode(list_number)
                         self.aststack[-1].packaged = True
 
-                    if len(temp_numbers) == 1:
-                        self.aststack.append(temp_numbers.pop())
+                    if len(temp_vars) == 1:
+                        self.aststack.append(temp_vars.pop())
 
                     if type(self.aststack[-1]) is Identifier:
                         self.aststack[-1].packaged = True
@@ -385,7 +391,7 @@ class Parser:
                         self.aststack[-1].packaged = True
 
                 list_number = []
-                temp_numbers = []
+                temp_vars = []
             if debug:
                 logging.debug(
                     f"[Compiler] [sub] [Parser] [ln {self.line}] [looped]\n"
@@ -395,11 +401,11 @@ class Parser:
                     f"true_branch_list: {true_branch_list}\n"
                     f"false_branch_list: {false_branch_list}\n"
                     f"true_branch: {true_branch}\n"
-                    f"temp_number: {temp_numbers}\n"
+                    f"temp_number: {temp_vars}\n"
                     f"temp_masks: {temp_masks}\n"
                     f"list_number: {list_number}\n"
                     f"temp_minus: {temp_minus}\n"
                     f"gen_aststack: {self.aststack}\n"
                 )
 
-        return f" Debug: \n  numbers: {temp_numbers} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"
+        return f" Debug: \n  numbers: {temp_vars} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"

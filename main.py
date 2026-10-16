@@ -29,6 +29,8 @@ a;
 1 ?> 10;
 a ?= 10;
 19 ?< b;
+a b ?> 2;
+b 12 ?< b;
 '''
 
 error_code = """
@@ -45,10 +47,10 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
-a b;
+b 12 ?< b;
 """
 
-text_code =debug_code
+text_code = code
 
 print("Input: Code")
 print(text_code)

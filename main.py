@@ -12,7 +12,7 @@ import lexer
 import parser
 
 code = '''
-> 1 + 2 * 3;
+> 1 + a * 3;
 > (1 + 2) * 3;
 a 24;
 b 2 4 3;
@@ -47,7 +47,7 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
-b 12 ?< b;
+a + 1;
 """
 
 text_code = code

@@ -85,7 +85,7 @@ class Parser:
         true_branch = True      # 当前是否在真分支
         debug = True            # 调试日志开关
 
-        for token in self.token_code:
+        for i, token in enumerate(self.token_code):
 
             # 打印进入本 token 处理前的状态快照
             if debug:
@@ -114,18 +114,26 @@ class Parser:
                     self.aststack[-1].right = Number(data)
                     is_IF = False
                     continue
+                
+                # 前面有一元负号，包成 UnaryOp 再入栈
+                if temp_minus == "-":
+                    temp_number.append(UnaryOp("-", data))
+                    temp_minus = None
+                    continue
 
                 # 栈顶是未打包的变量名，说明这是列表字面量的元素
                 if (len(self.aststack) != 0
                     and type(self.aststack[-1]) is Identifier
-                    and self.aststack[-1].packaged == False):
+                    and self.aststack[-1].packaged == False
+                    and len(self.token_code) > 2
+                    and self.token_code[i+1][0] not in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV")):
                     vars_list.append(Number(data))
                     continue
-
-                # 前面有一元负号，包成 UnaryOp 再入栈
-                if (len(self.aststack) != 0 and temp_minus == "-"):
-                    temp_number.append(UnaryOp("-", data))
-                    temp_minus = None
+                
+                # 如果前后是算术运算符就到 temp_number里面去
+                if self.token_code[i+1][0] in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV", "TOKEN_END"):
+                    temp_number.append(Number(data))
+                    continue
 
                 # 普通数字，直接进表达式栈
                 else:
@@ -171,8 +179,14 @@ class Parser:
                 if (len(self.aststack) != 0
                     and type(self.aststack[-1]) is Identifier
                     and self.aststack[-1].packaged  == False
-                    and self.aststack[-1].var == None):
+                    and self.aststack[-1].var == None
+                    and self.token_code[i+1][0] not in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV")):
                     vars_list.append(Identifier(data))
+                    continue
+
+                # 如果前后是算术运算符就到 temp_number里面去
+                if self.token_code[i+1][0] in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV", "TOKEN_END"):
+                    temp_number.append(Identifier(data))
                     continue
 
                 # 在 ? 之后，填进比较节点的右操作数
@@ -187,6 +201,7 @@ class Parser:
                     self.aststack.append(Identifier(data))
                     continue
 
+                
                 # 前面有运算符等着操作数，这个标识符进表达式栈
                 if (len(temp_masks) == len(temp_number) and len(temp_number) != 0):
                     temp_number.append(Identifier(data))
@@ -277,21 +292,21 @@ class Parser:
                 if is_IF:
                     if (len(vars_list) != 0
                         and type(vars_list[-1]) is Identifier):
-                        last_node = vars_list.pop()
+                        temp_node = vars_list.pop()
 
                     elif (len(temp_number) != 0
                         and type(temp_number[-1]) is Identifier):
-                        last_node = temp_number.pop()
+                        temp_node = temp_number.pop()
 
                     elif (len(vars_list) != 0
                         and type(vars_list[-1]) is Identifier):
-                        last_node = vars_list.pop()
+                        temp_node = vars_list.pop()
 
                     elif (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
-                        last_node = self.aststack.pop()
+                        temp_node = self.aststack.pop()
 
                     elif len(temp_number) == 1:
-                        last_node = temp_number.pop()
+                        temp_node = temp_number.pop()
                         if len(temp_number) != 0:
                             print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
                             running = False
@@ -301,7 +316,7 @@ class Parser:
                         print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
                         running = False
                         break
-                    self.aststack.append(Gt(left=last_node))
+                    self.aststack.append(Gt(left=temp_node))
                     continue
 
                 # 普通情况，直接压入 Output 节点
@@ -315,21 +330,21 @@ class Parser:
                     if is_IF:
                         if (len(vars_list) != 0
                             and type(vars_list[-1]) is Identifier):
-                            last_node = vars_list.pop()
+                            temp_node = vars_list.pop()
 
                         elif (len(temp_number) != 0
                             and type(temp_number[-1]) is Identifier):
-                            last_node = temp_number.pop()
+                            temp_node = temp_number.pop()
 
                         elif (len(vars_list) != 0
                             and type(vars_list[-1]) in (Identifier, Number)):
-                            last_node = vars_list.pop()
+                            temp_node = vars_list.pop()
 
                         elif (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
-                            last_node = self.aststack.pop()
+                            temp_node = self.aststack.pop()
 
                         elif len(temp_number) != 0:
-                            last_node = temp_number.pop()
+                            temp_node = temp_number.pop()
                             if len(temp_number) != 0:
                                 print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
                                 running = False
@@ -339,7 +354,7 @@ class Parser:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
                             running = False
                             break
-                        self.aststack.append(Lt(left=last_node))
+                        self.aststack.append(Lt(left=temp_node))
                         continue
 
                     # 普通情况，栈顶是未打包变量就当 input 的目标变量
@@ -357,10 +372,10 @@ class Parser:
                 if len(self.aststack) != 0:
                     if is_IF:
                         if (len(self.aststack) != 0 and type(self.aststack[-1]) in (String, Identifier, Number)):
-                            last_node = self.aststack.pop()
+                            temp_node = self.aststack.pop()
 
                         elif len(temp_number) != 0:
-                            last_node = temp_number.pop()
+                            temp_node = temp_number.pop()
                             if len(temp_number) != 0:
                                 print(f"Syntax error [{self.line} line]: Unexpected number(s) before operator.")
                                 running = False
@@ -370,7 +385,7 @@ class Parser:
                             print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
                             running = False
                             break
-                        self.aststack.append(Eq(left=last_node))
+                        self.aststack.append(Eq(left=temp_node))
                         continue
 
             # 行结束，做各种归约和打包
@@ -437,9 +452,13 @@ class Parser:
                     if len(temp_number) == 1:
                         self.aststack.append(temp_number.pop())
 
-                    # 栈顶是 Identifier，标记为已打包
-                    if type(self.aststack[-1]) is Identifier:
-                        self.aststack[-1].packaged = True
+                    # 如果栈顶是BinOp,并且前面是Id
+                    if (len(self.aststack) > 1
+                        and type(self.aststack[-1]) is BinOp
+                        and type(self.aststack[-2]) is Identifier
+                        and self.aststack[-2].packaged == False):
+                        temp_node = self.aststack.pop()
+                        self.aststack[-1].var = temp_node
 
                     # 变量名后面跟着比较节点，合并成赋值
                     if (len(self.aststack) >= 2
@@ -447,8 +466,8 @@ class Parser:
                         and type(self.aststack[-1]) in (Gt, Eq, Lt)
                         and self.aststack[-1].right != None
                         and self.aststack[-1].left != None):
-                        last_node = self.aststack.pop()
-                        self.aststack[-1].var = last_node
+                        temp_node = self.aststack.pop()
+                        self.aststack[-1].var = temp_node
                         self.aststack[-1].packaged = True
 
                     # 收集条件分支的语句

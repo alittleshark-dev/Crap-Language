@@ -47,10 +47,11 @@ i 0; i ?> 10 !:;
 """
 
 debug_code = """
-a + 1;
+-1 + 1 + 3;
+a 1 2 3 i;
 """
 
-text_code = code
+text_code = debug_code
 
 print("Input: Code")
 print(text_code)

@@ -83,7 +83,7 @@ class Parser:
         true_branch_list = []   # 真分支语句
         false_branch_list = []  # 假分支语句
         true_branch = True      # 当前是否在真分支
-        debug = True            # 调试日志开关
+        debug = True           # 调试日志开关
 
         for i, token in enumerate(self.token_code):
 
@@ -175,6 +175,24 @@ class Parser:
 
             # 标识符处理
             if token_type == "TOKEN_IDENTIFIER":
+                # 栈顶是 input，标识符是它的目标变量
+                if (len(self.aststack) != 0
+                        and type(self.aststack[-1]) is Input
+                        and self.aststack[-1].data == None
+                        and not self.aststack[-1].packaged
+                        and self.token_code[i+1][0] not in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV")):
+                    self.aststack[-1].data = Identifier(data)
+                    continue
+
+                # 栈顶是 output，标识符是它的输出内容
+                if (len(self.aststack) != 0
+                        and type(self.aststack[-1]) is Output
+                        and self.aststack[-1].data == None
+                        and not self.aststack[-1].packaged
+                        and self.token_code[i+1][0] not in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV")):
+                    self.aststack[-1].data = Identifier(data)
+                    continue
+
                 # 栈顶是未打包的变量名，这个标识符是列表字面量的元素
                 if (len(self.aststack) != 0
                     and type(self.aststack[-1]) is Identifier
@@ -184,11 +202,6 @@ class Parser:
                     vars_list.append(Identifier(data))
                     continue
 
-                # 如果前后是算术运算符就到 temp_number里面去
-                if self.token_code[i+1][0] in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV", "TOKEN_END"):
-                    temp_number.append(Identifier(data))
-                    continue
-
                 # 在 ? 之后，填进比较节点的右操作数
                 if (is_IF and type(self.aststack[-1]) in (Gt, Eq, Lt)
                           and self.aststack[-1].right == None):
@@ -196,29 +209,20 @@ class Parser:
                     is_IF = False
                     continue
 
+                # 如果前后是算术运算符就到 temp_number里面去
+                if self.token_code[i+1][0] in ("TOKEN_PLUS", "TOKEN_MINUS", "TOKEN_MUL", "TOKEN_DIV", "TOKEN_END"):
+                    temp_number.append(Identifier(data))
+                    continue
+
                 # 全新的标识符，直接入栈
                 if (len(self.aststack) == 0 and len(temp_number) == 0):
                     self.aststack.append(Identifier(data))
                     continue
-
                 
-                # 前面有运算符等着操作数，这个标识符进表达式栈
+                # 运算符等于操作数，这个标识符进表达式栈
                 if (len(temp_masks) == len(temp_number) and len(temp_number) != 0):
                     temp_number.append(Identifier(data))
                     continue
-
-                # 栈顶是 input，标识符是它的目标变量
-                if (type(self.aststack[-1]) is Input
-                        and self.aststack[-1].data == None
-                        and not self.aststack[-1].packaged):
-                    self.aststack[-1].data = Identifier(data)
-                    continue
-
-                # 栈顶是 output，标识符是它的输出内容
-                if (type(self.aststack[-1]) is Output
-                        and self.aststack[-1].data == None
-                        and not self.aststack[-1].packaged):
-                    self.aststack[-1].data = Identifier(data)
 
                 # 其他情况，当新标识符入栈
                 else:
@@ -316,6 +320,7 @@ class Parser:
                         print(f"Syntax error [{self.line} line]: Missing left operand for comparison operator.")
                         running = False
                         break
+
                     self.aststack.append(Gt(left=temp_node))
                     continue
 
@@ -451,6 +456,7 @@ class Parser:
                     # 表达式栈只剩一个，塞进 aststack
                     if len(temp_number) == 1:
                         self.aststack.append(temp_number.pop())
+                        self.aststack[-1].packaged = True
 
                     # 如果栈顶是BinOp,并且前面是Id
                     if (len(self.aststack) > 1
@@ -495,11 +501,11 @@ class Parser:
                         and len(true_branch_list) == 0 and len(false_branch_list) == 0):
                         self.aststack[-1].packaged = True
 
-                # 行结束，清空行内缓冲
+                # 行结束，清空行内缓存
                 vars_list = []
                 temp_number = []
 
-            # 打印本 token 处理完的状态快照
+            # 打印本 token 处理完的状态
             if debug:
                 logging.debug(
                     f"[Compiler] [sub] [Parser] [ln {self.line}] [looped]\n"

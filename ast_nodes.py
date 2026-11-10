@@ -146,7 +146,7 @@ class Gt(Compare):
         super().__init__(left=left, operator=">", right=right)
 
     def __repr__(self):
-        return f"Gt(Operator: {self.data} left: {self.left}) right: {self.right}"
+        return f"Gt(Operator: {self.data} left: {self.left} right: {self.right})"
 
 class Lt(Compare):
     def __init__(self, left=None, right=None):
@@ -158,7 +158,7 @@ class Lt(Compare):
         super().__init__(left=left, operator="<", right=right)
 
     def __repr__(self):
-        return f"Lt(Operator: {self.data} left: {self.left}) right: {self.right}"
+        return f"Lt(Operator: {self.data} left: {self.left} right: {self.right})"
 
 class Eq(Compare):
     def __init__(self, left=None, right=None):
@@ -170,7 +170,7 @@ class Eq(Compare):
         super().__init__(left=left, operator="=", right=right)
 
     def __repr__(self):
-        return f"Eq(Operator: {self.data} left: {self.left}) right: {self.right}"
+        return f"Eq(Operator: {self.data} left: {self.left} right: {self.right})"
 
 """
 语句 / Statement

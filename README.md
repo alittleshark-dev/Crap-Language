@@ -1,7 +1,8 @@
+<!-- markdownlint-disable MD033 -->
 <h1 align="center">Crap++</h1>
 
 > 欢迎来到面向屎山编程!
-
+>
 > 我不推荐你把他写到简历里面，因为这显得不太专业
 
 ---
@@ -25,8 +26,8 @@
 | `:<语句>:;` | 死循环 | `a 0; :a+1; a<3? !: ;:;` |
 | `!;` | 中断/跳出 (Break) | `!;` |
 | `?=` | 等于 (Equal) | `x ?= 10 > "是的";: > "不是";;` |
-| `?<` | 小于| `x ?< 10 > "是的";: > "不是";;` |
-| `?>` | 大于| `x ?> 10 > "是的";: > "不是";;` |
+| `?<` | 小于 | `x ?< 10 > "是的";: > "不是";;` |
+| `?>` | 大于 | `x ?> 10 > "是的";: > "不是";;` |
 | `()` | 括号/表达式分组 | `(1 + 2) * 3;` |
 | `;` | 语句结束符 (End) | `> "End";` |
 | `<函数名> [<参数1>, <参数2> ... <参数n>]: <函数体> !<返回值>;:` | 函数(Function) | `add a b : !a + b; :` |
@@ -34,13 +35,18 @@
 
 ## 进度
 
-- [<span style="color:#28A745">+</span>] 词法分析器 (Lexer)
-- [<span style="color:#E36209">-</span>] 语法分析器 (Parser)
-- [<span style="color:#999999"> </span>] 代码生成器 (Code Generator)
+- [x] 词法分析器 (Lexer)
+- [-] 语法分析器 (Parser)
+- [ ] 代码生成器 (Code Generator)
 
 ## 🤔 怎么用?
-`$ python Crap++.py`
+
+```bash
+git clone https://github.com/alittleshark-dev/Crap-Language.git
+cd ./Crap-Language
+python ./main.py [<Crap Source File>.crap]
+```
 
 ---
 
-*Copyright (c) 2026 alittleshark-dev*
+Copyright (c) 2026 alittleshark-dev

@@ -37,18 +37,10 @@ error_code = """
 > 1 * 2 * 4*;
 """
 
-fib = """
-a 1 1;
-i 0; i ?> 10 !:;
-    b a[i+1];
-    a [i+2] [a[i] + b];
-:;
-> a;
-"""
-
 debug_code = """
--1 + 1 + 3;
-a 1 2 3 i;
+a d c;
+a b ?< b;
+a ?= 1 > "相等"; : > "不相等";;
 """
 
 text_code = debug_code

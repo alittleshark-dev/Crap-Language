@@ -23,7 +23,7 @@ log_file = f"log/{timestamp}_astdebug.log"
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s | %(levelname)-8s | | %(message)s",
+    format="\n%(asctime)s | %(levelname)-8s\n %(message)s\n",
     force=True,
     handlers=[
         logging.FileHandler(log_file),
@@ -31,6 +31,18 @@ logging.basicConfig(
     ]
 )
 
+class Color:
+    # 为了让输出更加好看这里写点颜色代码
+    RESET = '\033[0m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    GRAY = '\033[90m'
+    BOLD = '\033[1m'
 
 class Parser:
     def __init__(self, token_code):
@@ -70,9 +82,9 @@ class Parser:
         true_branch_list: list     用来存放真分支的语句
         false_branch_list: list    用来存放假分支的语句
         true_branch: bool          当前是否在真分支
+        in_loop: bool              是不是在循环内
         debug: bool                调试开关
         """
-
         bracket_stack = []      # 括号位置，记录 op_stacks 的深度
         temp_number = []        # 表达式求值栈
         temp_masks = []         # 运算符栈
@@ -83,25 +95,43 @@ class Parser:
         true_branch_list = []   # 真分支语句
         false_branch_list = []  # 假分支语句
         true_branch = True      # 当前是否在真分支
-        debug = True           # 调试日志开关
+        in_loop = False         # 是不是在循环内
+        debug = False           # 调试日志开关
 
         for i, token in enumerate(self.token_code):
-
-            # 打印进入本 token 处理前的状态快照
             if debug:
+                # 获取 packaged 状态，并根据 True/False 赋予不同颜色
+                packaged_str = "Not Find" if len(self.aststack) == 0 else str(self.aststack[-1].packaged)
+                packaged_color = Color.RED if packaged_str == "False" else Color.GREEN
+
+                
                 logging.debug(
-                    f"[Compiler] [sub] [Parser] [ln {self.line}] [unloop]\n"
-                    f"now_token: {token}\n"
-                    f"Packaged? {'Not Find' if len(self.aststack) == 0 else self.aststack[-1].packaged}\n"
-                    f"bracket_stack: {bracket_stack}\n"
-                    f"true_branch_list: {true_branch_list}\n"
-                    f"false_branch_list: {false_branch_list}\n"
-                    f"true_branch: {true_branch}\n"
-                    f"temp_number: {temp_number}\n"
-                    f"temp_masks: {temp_masks}\n"
-                    f"vars_list: {vars_list}\n"
-                    f"temp_minus: {temp_minus}\n"
-                    f"gen_aststack: {self.aststack}\n"
+                    f"{Color.RED} === [ Context ] ===================================================={Color.RESET}\n"
+                    f"   {Color.YELLOW}[ln {self.line}] [unloop]{Color.RESET}\n"
+                    f"   now_token: {Color.BOLD}{Color.WHITE}{token!r}{Color.RESET}\n"
+                    f"   Packaged? {packaged_color}{packaged_str}{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.CYAN} === [ Control Flow ] =============================================={Color.RESET}\n"
+                    f"   --- if [in if? {Color.BOLD}{is_IF}{Color.RESET}]\n"
+                    f"      true_branch_list: {Color.GRAY}{true_branch_list!r}{Color.RESET}\n"
+                    f"      false_branch_list: {Color.GRAY}{false_branch_list!r}{Color.RESET}\n"
+                    f"      true_branch: {true_branch}\n"
+                    f"\n"
+                    f"   --- loop [inloop? {Color.BOLD}{in_loop}{Color.RESET}]\n"
+                    f"      Loop Stack: {Color.GRAY}Undefined{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.BLUE} === [ Expression Stack ] ==========================================={Color.RESET}\n"
+                    f"   temp_minus: {Color.GRAY}{temp_minus!r}{Color.RESET}\n"
+                    f"   temp_number: {Color.GRAY}{temp_number!r}{Color.RESET}\n"
+                    f"   temp_masks: {Color.GRAY}{temp_masks!r}{Color.RESET}\n"
+                    f"   bracket_stack: {Color.GRAY}{bracket_stack!r}{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.MAGENTA} === [ Variables ] ==============================================={Color.RESET}\n"
+                    f"   vars_list: {Color.GRAY}{vars_list!r}{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.GREEN} === [ AST Generation ] ============================================{Color.RESET}\n"
+                    f"   gen_aststack: {Color.GREEN}{self.aststack!r}{Color.RESET}\n"
+                    f"{Color.RED} ====================================================================={Color.RESET}\n"
                 )
 
             token_type, data = token
@@ -274,6 +304,10 @@ class Parser:
                     temp_number.append(op_node)
                 continue
 
+            # ==========================
+            #  控制流程语句
+            # ==========================
+            
             # IF 触发符 ?
             if token_type == "TOKEN_IF":
                 is_IF = True
@@ -289,7 +323,16 @@ class Parser:
                 true_branch_list.clear()
                 true_branch = False
                 continue
+            
+            # 循环
+            if token_type == "TOKEN_COLON" and in_loop == False:
+                in_loop = True
+                continue
 
+            # ==========================
+            #  输入输出
+            # ==========================
+            
             # OUTPUT
             if token_type == "TOKEN_OUTPUT":
                 # 在 ? 之后，output 作为比较左值，构造 Gt 节点
@@ -507,19 +550,36 @@ class Parser:
 
             # 打印本 token 处理完的状态
             if debug:
+                packaged_str = "Not Find" if len(self.aststack) == 0 else str(self.aststack[-1].packaged)
+                packaged_color = Color.RED if packaged_str == "False" else Color.GREEN
+
                 logging.debug(
-                    f"[Compiler] [sub] [Parser] [ln {self.line}] [looped]\n"
-                    f"now_token: {token}\n"
-                    f"Packaged? {'Not Find' if len(self.aststack) == 0 else self.aststack[-1].packaged}\n"
-                    f"bracket_stack: {bracket_stack}\n"
-                    f"true_branch_list: {true_branch_list}\n"
-                    f"false_branch_list: {false_branch_list}\n"
-                    f"true_branch: {true_branch}\n"
-                    f"temp_number: {temp_number}\n"
-                    f"temp_masks: {temp_masks}\n"
-                    f"vars_list: {vars_list}\n"
-                    f"temp_minus: {temp_minus}\n"
-                    f"gen_aststack: {self.aststack}\n"
+                    f"{Color.RED} === [ Context ] ===================================================={Color.RESET}\n"
+                    f"   {Color.YELLOW}[ln {self.line}] [looped]{Color.RESET}\n"
+                    f"   now_token: {Color.BOLD}{Color.WHITE}{token!r}{Color.RESET}\n"
+                    f"   Packaged? {packaged_color}{packaged_str}{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.CYAN} === [ Control Flow ] =============================================={Color.RESET}\n"
+                    f"   --- if [in if? {Color.BOLD}{is_IF}{Color.RESET}]\n"
+                    f"      true_branch_list: {Color.GRAY}{true_branch_list!r}{Color.RESET}\n"
+                    f"      false_branch_list: {Color.GRAY}{false_branch_list!r}{Color.RESET}\n"
+                    f"      true_branch: {true_branch}\n"
+                    f"\n"
+                    f"   --- loop [inloop? {Color.BOLD}{in_loop}{Color.RESET}]\n"
+                    f"      Loop Stack: {Color.GRAY}Undefined{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.BLUE} === [ Expression Stack ] ==========================================={Color.RESET}\n"
+                    f"   temp_minus: {Color.GRAY}{temp_minus!r}{Color.RESET}\n"
+                    f"   temp_number: {Color.GRAY}{temp_number!r}{Color.RESET}\n"
+                    f"   temp_masks: {Color.GRAY}{temp_masks!r}{Color.RESET}\n"
+                    f"   bracket_stack: {Color.GRAY}{bracket_stack!r}{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.MAGENTA} === [ Variables ] ==============================================={Color.RESET}\n"
+                    f"   vars_list: {Color.GRAY}{vars_list!r}{Color.RESET}\n"
+                    f"\n"
+                    f"{Color.GREEN} === [ AST Generation ] ============================================{Color.RESET}\n"
+                    f"   gen_aststack: {Color.GREEN}{self.aststack!r}{Color.RESET}\n"
+                    f"{Color.RED} ====================================================================={Color.RESET}\n"
                 )
 
         return f" Debug: \n  numbers: {temp_number} \n  temp_masks: {temp_masks} \n aststack: {self.aststack}"

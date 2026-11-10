@@ -38,9 +38,9 @@ error_code = """
 """
 
 debug_code = """
-a d c;
-a b ?< b;
-a ?= 1 > "相等"; : > "不相等";;
+:
+    a ?= 1 > "相等"; : > "不相等";;
+:;
 """
 
 text_code = debug_code

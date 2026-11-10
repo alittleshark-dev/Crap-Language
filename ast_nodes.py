@@ -10,7 +10,7 @@
 
 class ASTNode:
     """
-    所有AST节点的基类
+    所有AST节点的基类 / 万物起源
     """
     def __init__(self, data):
         """ data: str  存放Token """
@@ -80,7 +80,7 @@ class ListNode(Expression):
 
 
 """
-表达式 / Expression
+算术表达式 / Expression
 """
 class BinOp(Expression):
     """
@@ -173,7 +173,7 @@ class Eq(Compare):
         return f"Eq(Operator: {self.data} left: {self.left} right: {self.right})"
 
 """
-语句 / Statement
+语句基类 / Statement
 """
 class Statement(ASTNode):
     """语句基类：执行一个动作，不产生值"""
@@ -200,6 +200,42 @@ class Condition(Statement):
     def __repr__(self):
         return f"Condition(condition={self.data!r} left={self.left!r} right={self.right!r})"
 
+class Loop(Statement):
+    """
+    死循环 / 你肯定不会喜欢这个的
+    """
+    def __init__(self, body=None):
+        """
+        body: 这是循环的内容
+        """
+        super().__init__(data=body)
+    
+    def __repr__(self):
+        return f"Loop(body={self.data!r})"
+
+class Break(Statement):
+    """
+    跳出语句
+    """
+    def __init__(self):
+        # 它不需要任何 data，它就是一个信号
+        super().__init__(data="Break")
+
+    def __repr__(self):
+        return "Break()"
+
+class Function(Statement):
+    """
+    函数
+    """
+    def __init__(self, body=None):
+        """
+        body: 这是函数的内容
+        """
+        super().__init__(data=body)
+    
+    def __repr__(self):
+        return f"Function(body={self.data!r})"
 
 """
 输入输出 / Input and Output

@@ -96,7 +96,8 @@ class Parser:
         false_branch_list = []  # 假分支语句
         true_branch = True      # 当前是否在真分支
         in_loop = False         # 是不是在循环内
-        debug = False           # 调试日志开关
+        loop_branch = []        # 循环分支
+        debug = True           # 调试日志开关
 
         for i, token in enumerate(self.token_code):
             if debug:
@@ -118,7 +119,7 @@ class Parser:
                     f"      true_branch: {true_branch}\n"
                     f"\n"
                     f"   --- loop [inloop? {Color.BOLD}{in_loop}{Color.RESET}]\n"
-                    f"      Loop Stack: {Color.GRAY}Undefined{Color.RESET}\n"
+                    f"      Loop Stack: {Color.GRAY}{loop_branch}{Color.RESET}\n"
                     f"\n"
                     f"{Color.BLUE} === [ Expression Stack ] ==========================================={Color.RESET}\n"
                     f"   temp_minus: {Color.GRAY}{temp_minus!r}{Color.RESET}\n"
@@ -323,7 +324,10 @@ class Parser:
                 true_branch_list.clear()
                 true_branch = False
                 continue
-            
+
+            if in_loop == True and len(self.aststack) != 0 and self.aststack[-1].packaged == True:
+                loop_branch.append(self.aststack.pop())
+
             # 循环
             if token_type == "TOKEN_COLON" and in_loop == False:
                 in_loop = True
@@ -538,7 +542,8 @@ class Parser:
                         true_branch = True
 
                     # 比较节点或条件节点收尾打包
-                    if (self.aststack[-1].packaged == False
+                    if (len(self.aststack) != 0
+                        and self.aststack[-1].packaged == False
                         and type(self.aststack[-1]) in (Eq, Lt, Gt, Condition)
                         and self.aststack[-1].right != None and self.aststack[-1].left != None
                         and len(true_branch_list) == 0 and len(false_branch_list) == 0):
@@ -566,7 +571,7 @@ class Parser:
                     f"      true_branch: {true_branch}\n"
                     f"\n"
                     f"   --- loop [inloop? {Color.BOLD}{in_loop}{Color.RESET}]\n"
-                    f"      Loop Stack: {Color.GRAY}Undefined{Color.RESET}\n"
+                    f"      Loop Stack: {Color.GRAY}{loop_branch}{Color.RESET}\n"
                     f"\n"
                     f"{Color.BLUE} === [ Expression Stack ] ==========================================={Color.RESET}\n"
                     f"   temp_minus: {Color.GRAY}{temp_minus!r}{Color.RESET}\n"
